@@ -7,6 +7,8 @@ let isTyping = false;
 let healthTimer;
 let currentComposeMode = 'text';
 let isSocketConnected = false;
+let hostFilterState = 'all';
+let hostsCache = [];
 const typingUsers = new Set();
 let connectedUsersCache = [];
 let currentRoomAccess = null;
@@ -37,9 +39,12 @@ const elements = {
     statMessagesToday: document.getElementById('statMessagesToday'),
     statTotalRooms: document.getElementById('statTotalRooms'),
     statConnectedUsers: document.getElementById('statConnectedUsers'),
+    allCount: document.getElementById('allCount'),
     onlineCount: document.getElementById('onlineCount'),
     offlineCount: document.getElementById('offlineCount'),
     unknownCount: document.getElementById('unknownCount'),
+    hostFilterControls: document.getElementById('hostFilterControls'),
+    hostFilterHint: document.getElementById('hostFilterHint'),
     hostsList: document.getElementById('hostsList'),
     usersList: document.getElementById('usersList'),
     usernameInput: document.getElementById('usernameInput'),
@@ -537,15 +542,39 @@ function buildMessageActions(message) {
 
 function stateBadge(status) {
     const safeStatus = ['online', 'offline', 'unknown'].includes(status) ? status : 'unknown';
-    return `<span class="badge-state state-${safeStatus}">${safeStatus}</span>`;
+    return `<button class="badge-state state-${safeStatus}" type="button" data-host-status="${safeStatus}">${safeStatus}</button>`;
 }
 
-function renderHosts(hosts) {
-    if (!hosts.length) {
+function normalizeHostStatus(value) {
+    if (['online', 'offline', 'unknown'].includes(value)) {
+        return value;
+    }
+
+    return 'unknown';
+}
+
+function setHostFilter(filter) {
+    const normalized = ['all', 'online', 'offline', 'unknown'].includes(filter) ? filter : 'all';
+    hostFilterState = normalized;
+
+    const filterButtons = Array.from(elements.hostFilterControls?.querySelectorAll('.host-filter-chip') || []);
+    for (const button of filterButtons) {
+        button.classList.toggle('active', button.dataset.filter === hostFilterState);
+    }
+
+    renderHosts(hostsCache);
+}
+
+function renderHosts(hosts = hostsCache) {
+    hostsCache = Array.isArray(hosts) ? hosts : [];
+
+    if (!hostsCache.length) {
         elements.hostsList.innerHTML = '<li>Nincs host adat.</li>';
+        elements.allCount.textContent = '0';
         elements.onlineCount.textContent = '0';
         elements.offlineCount.textContent = '0';
         elements.unknownCount.textContent = '0';
+        elements.hostFilterHint.textContent = 'Mutatott hostok: 0 / 0';
         return;
     }
 
@@ -555,17 +584,31 @@ function renderHosts(hosts) {
         unknown: 0
     };
 
-    for (const host of hosts) {
-        if (stats[host.status] !== undefined) {
-            stats[host.status] += 1;
+    for (const host of hostsCache) {
+        const status = normalizeHostStatus(host?.status);
+        if (stats[status] !== undefined) {
+            stats[status] += 1;
         }
     }
 
+    elements.allCount.textContent = String(hostsCache.length);
     elements.onlineCount.textContent = String(stats.online);
     elements.offlineCount.textContent = String(stats.offline);
     elements.unknownCount.textContent = String(stats.unknown);
 
-    elements.hostsList.innerHTML = hosts
+    const filteredHosts =
+        hostFilterState === 'all'
+            ? hostsCache
+            : hostsCache.filter((host) => normalizeHostStatus(host?.status) === hostFilterState);
+
+    elements.hostFilterHint.textContent = `Mutatott hostok: ${filteredHosts.length} / ${hostsCache.length}`;
+
+    if (!filteredHosts.length) {
+        elements.hostsList.innerHTML = '<li>Nincs host ebben a szuroben.</li>';
+        return;
+    }
+
+    elements.hostsList.innerHTML = filteredHosts
         .map(
             (host) =>
                 `<li><span>${escapeHtml(host.ip)} ${
@@ -1181,6 +1224,34 @@ function bindEvents() {
         }
     });
 
+    elements.hostFilterControls?.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+
+        const button = target.closest('.host-filter-chip');
+        if (!button) {
+            return;
+        }
+
+        setHostFilter(button.dataset.filter || 'all');
+    });
+
+    elements.hostsList?.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+
+        const statusButton = target.closest('.badge-state');
+        if (!statusButton) {
+            return;
+        }
+
+        setHostFilter(statusButton.dataset.hostStatus || 'all');
+    });
+
     elements.privateRoomToggle.addEventListener('change', () => {
         updatePrivateMembersVisibility();
         updateActionGuards();
@@ -1256,6 +1327,7 @@ async function bootstrap() {
     setupSocket();
     bindEvents();
     setComposeMode('text');
+    setHostFilter('all');
     loadDraft();
     updatePrivateMembersVisibility();
     updateMessageCounter();

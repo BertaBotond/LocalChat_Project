@@ -57,17 +57,25 @@
 
                     <section class="panel p-3 mb-3">
                         <h2 class="h5 mb-3">Host Statuszok</h2>
-                        <div class="host-mini-stats">
-                            <div class="mini-stat">
-                                <span class="badge bg-success">Online: <span id="onlineCount">0</span></span>
-                            </div>
-                            <div class="mini-stat">
-                                <span class="badge bg-danger">Offline: <span id="offlineCount">0</span></span>
-                            </div>
-                            <div class="mini-stat">
-                                <span class="badge bg-secondary">Unknown: <span id="unknownCount">0</span></span>
-                            </div>
+                        <div class="host-filter-grid" id="hostFilterControls" role="group" aria-label="Host statusz szurok">
+                            <button class="host-filter-chip active" type="button" data-filter="all">
+                                Osszes
+                                <span id="allCount">0</span>
+                            </button>
+                            <button class="host-filter-chip" type="button" data-filter="online">
+                                Online
+                                <span id="onlineCount">0</span>
+                            </button>
+                            <button class="host-filter-chip" type="button" data-filter="offline">
+                                Offline
+                                <span id="offlineCount">0</span>
+                            </button>
+                            <button class="host-filter-chip" type="button" data-filter="unknown">
+                                Unknown
+                                <span id="unknownCount">0</span>
+                            </button>
                         </div>
+                        <small id="hostFilterHint" class="text-light opacity-75 d-block mt-2">Mutatott hostok: 0 / 0</small>
                         <ul class="list-unstyled mt-3 hosts-list" id="hostsList"></ul>
                         <button id="rescanBtn" class="btn btn-sm btn-outline-light mt-2">Rescan</button>
                     </section>
