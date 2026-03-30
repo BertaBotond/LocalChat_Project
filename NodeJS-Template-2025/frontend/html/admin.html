@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="hu">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>LocalChat Admin Diagnostics</title>
+        <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css" />
+        <link rel="stylesheet" href="../css/admin.css" />
+        <script src="../javascript/admin.js" defer></script>
+    </head>
+    <body>
+        <div class="admin-shell container-fluid py-3 px-3 px-md-4">
+            <header class="admin-header mb-3">
+                <div>
+                    <p class="eyebrow mb-1">Localchat Secure Ops</p>
+                    <h1 class="mb-1">Admin Diagnostics</h1>
+                    <p class="mb-0">Titkositott log, recovery, startup smoke es halozati allapot egy helyen.</p>
+                </div>
+                <div class="header-actions">
+                    <a class="btn btn-outline-light btn-sm" href="/">Vissza a chatre</a>
+                </div>
+            </header>
+
+            <section class="panel p-3 mb-3">
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-md-8">
+                        <label for="adminTokenInput" class="form-label">Admin token</label>
+                        <input id="adminTokenInput" class="form-control" type="password" placeholder="ADMIN_TOKEN" autocomplete="off" />
+                    </div>
+                    <div class="col-6 col-md-2 d-grid">
+                        <button id="loadDiagnosticsBtn" class="btn btn-accent">Frissites</button>
+                    </div>
+                    <div class="col-6 col-md-2 d-grid">
+                        <button id="runSmokeBtn" class="btn btn-outline-light">Smoke futtat</button>
+                    </div>
+                </div>
+                <p id="adminStatus" class="mb-0 mt-2 small">Status: varakozas.</p>
+            </section>
+
+            <div class="row g-3">
+                <div class="col-12 col-lg-6">
+                    <section class="panel p-3 h-100">
+                        <h2 class="h5 mb-2">Titkositott Log</h2>
+                        <ul id="secureLogList" class="kv-list"></ul>
+                    </section>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <section class="panel p-3 h-100">
+                        <h2 class="h5 mb-2">Recovery Status</h2>
+                        <ul id="recoveryList" class="kv-list"></ul>
+                    </section>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <section class="panel p-3 h-100">
+                        <h2 class="h5 mb-2">Startup Smoke</h2>
+                        <ul id="smokeSummaryList" class="kv-list"></ul>
+                        <div id="smokeChecks" class="checks-list mt-2"></div>
+                    </section>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <section class="panel p-3 h-100">
+                        <h2 class="h5 mb-2">Runtime es Halozat</h2>
+                        <ul id="runtimeList" class="kv-list"></ul>
+                        <div class="mt-2">
+                            <h3 class="h6">Connect URL-ek</h3>
+                            <ul id="connectUrlsList" class="simple-list"></ul>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
