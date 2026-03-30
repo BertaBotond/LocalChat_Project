@@ -35,6 +35,11 @@ const elements = {
     networkInfo: document.getElementById('networkInfo'),
     clientConnectUrl: document.getElementById('clientConnectUrl'),
     copyConnectUrlBtn: document.getElementById('copyConnectUrlBtn'),
+    footerNow: document.getElementById('footerNow'),
+    footerLastSync: document.getElementById('footerLastSync'),
+    footerJumpLatestBtn: document.getElementById('footerJumpLatestBtn'),
+    footerCopyUrlBtn: document.getElementById('footerCopyUrlBtn'),
+    footerQuickRefreshBtn: document.getElementById('footerQuickRefreshBtn'),
     appToast: document.getElementById('appToast'),
     statTotalMessages: document.getElementById('statTotalMessages'),
     statMessagesToday: document.getElementById('statMessagesToday'),
@@ -536,6 +541,54 @@ function updateClientConnectInfo(connectUrls = []) {
 function updateMessageCounter() {
     const value = elements.messageInput.value || '';
     elements.messageCounter.textContent = `${value.length}/2000`;
+}
+
+function updateFooterClock() {
+    if (!elements.footerNow) {
+        return;
+    }
+
+    elements.footerNow.textContent = new Date().toLocaleTimeString('hu-HU', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function updateFooterLastSyncLabel() {
+    if (!elements.footerLastSync) {
+        return;
+    }
+
+    elements.footerLastSync.textContent = `Last sync: ${new Date().toLocaleTimeString('hu-HU', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    })}`;
+}
+
+async function copyClientConnectUrl() {
+    const value = elements.clientConnectUrl?.textContent?.trim();
+    if (!value) {
+        showToast('Nincs masolhato LAN URL.');
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(value);
+        showToast('Kliens URL masolva');
+    } catch (error) {
+        showToast('Masolas nem sikerult');
+    }
+}
+
+async function quickRefreshFooterData() {
+    await Promise.all([
+        loadHosts(),
+        loadStats(),
+        refreshCurrentRoomAccess(),
+        loadMessages()
+    ]);
+    updateFooterLastSyncLabel();
 }
 
 async function loadSecureLogStatus() {
@@ -1183,11 +1236,26 @@ function bindEvents() {
     });
 
     elements.copyConnectUrlBtn.addEventListener('click', async () => {
+        await copyClientConnectUrl();
+    });
+
+    elements.footerCopyUrlBtn?.addEventListener('click', async () => {
+        await copyClientConnectUrl();
+    });
+
+    elements.footerJumpLatestBtn?.addEventListener('click', () => {
+        if (elements.messages) {
+            elements.messages.scrollTop = elements.messages.scrollHeight;
+            showToast('Atugrott az utolso uzenethez.');
+        }
+    });
+
+    elements.footerQuickRefreshBtn?.addEventListener('click', async () => {
         try {
-            await navigator.clipboard.writeText(elements.clientConnectUrl.textContent.trim());
-            showToast('Kliens URL masolva');
+            await quickRefreshFooterData();
+            showToast('Gyors frissites kesz.');
         } catch (error) {
-            showToast('Masolas nem sikerult');
+            showToast(error.message || 'Gyors frissites sikertelen.');
         }
     });
 
@@ -1426,6 +1494,12 @@ async function bootstrap() {
     updatePrivateMembersVisibility();
     updateMessageCounter();
     updateActionGuards();
+    updateFooterClock();
+    updateFooterLastSyncLabel();
+
+    setInterval(() => {
+        updateFooterClock();
+    }, 30000);
 
     setInterval(() => {
         loadSecureLogStatus().catch(() => {});

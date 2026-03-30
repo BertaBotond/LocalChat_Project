@@ -304,6 +304,18 @@
                     </section>
                 </main>
             </div>
+
+            <footer class="app-footer mt-3" aria-label="Gyors muveletek footer">
+                <div class="app-footer-left">
+                    <span class="footer-pill" id="footerNow">--:--</span>
+                    <span class="footer-pill" id="footerLastSync">Last sync: --</span>
+                </div>
+                <div class="app-footer-actions">
+                    <button id="footerJumpLatestBtn" class="btn btn-xs btn-outline-light" type="button">Ugras az utolso uzenethez</button>
+                    <button id="footerCopyUrlBtn" class="btn btn-xs btn-outline-light" type="button">LAN URL masolasa</button>
+                    <button id="footerQuickRefreshBtn" class="btn btn-xs btn-outline-light" type="button">Gyors frissites</button>
+                </div>
+            </footer>
         </div>
 
         <div id="appToast" class="app-toast" role="status" aria-live="polite"></div>
