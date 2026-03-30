@@ -35,7 +35,7 @@
             </header>
 
             <div class="row g-3">
-                <aside class="col-12 col-lg-4">
+                <aside class="col-12 col-lg-3 app-sidebar">
                     <section class="panel p-3 mb-3">
                         <h2 class="h5 mb-3">Kliens csatlakozas</h2>
                         <div class="status-row mb-2">
@@ -104,143 +104,154 @@
                         </div>
                     </section>
 
-                    <section class="panel p-3 mb-3">
-                        <h2 class="h5 mb-3">LAN Tools</h2>
-                        <button id="quickLanTestBtn" class="btn btn-sm btn-outline-light w-100 mb-2">Quick LAN Test</button>
-                        <div id="quickLanTestList" class="small text-light"></div>
-                    </section>
+                    <section class="panel p-3 sidebar-utility-panel">
+                        <h2 class="h5 mb-3">LAN Utility</h2>
+                        <div class="sidebar-utility-grid">
+                            <article class="sidebar-mini-card">
+                                <h3 class="h6 mb-2">LAN Tools</h3>
+                                <button id="quickLanTestBtn" class="btn btn-sm btn-outline-light w-100 mb-2">Quick LAN Test</button>
+                                <div id="quickLanTestList" class="small text-light"></div>
+                            </article>
 
-                    <section class="panel p-3">
-                        <h2 class="h5 mb-3">Backup Terv</h2>
-                        <ul class="list-unstyled" id="networkBackupList"></ul>
+                            <article class="sidebar-mini-card">
+                                <h3 class="h6 mb-2">Backup Terv</h3>
+                                <ul class="list-unstyled mb-0" id="networkBackupList"></ul>
+                            </article>
+                        </div>
                     </section>
                 </aside>
 
-                <main class="col-12 col-lg-8">
-                    <section class="panel p-3 mb-3">
+                <main class="col-12 col-lg-9">
+                    <section class="panel p-3 mb-3 chat-main-panel">
                         <h2 class="h5 mb-3">Szoba Szerkesztes</h2>
 
-                        <div class="row g-2 mb-3 controls-row">
-                            <div class="col-12 col-md-6">
-                                <label for="usernameInput" class="form-label">Felhasznalonevod</label>
-                                <input id="usernameInput" class="form-control" maxlength="50" placeholder="Ird be a neved..." />
-                            </div>
-                            <div class="col-12 col-md-6">
-                                <label for="roomSelect" class="form-label">Szoba</label>
-                                <select id="roomSelect" class="form-select"></select>
-                            </div>
-                            <div class="col-12 d-grid">
-                                <button id="favoriteRoomBtn" class="btn btn-outline-light">Kedvenc szoba</button>
-                            </div>
-                        </div>
+                        <div class="chat-workspace-grid">
+                            <div class="chat-settings-stack">
+                                <div class="row g-2 mb-3 controls-row">
+                                    <div class="col-12 col-md-6 col-xl-12">
+                                        <label for="usernameInput" class="form-label">Felhasznalonevod</label>
+                                        <input id="usernameInput" class="form-control" maxlength="50" placeholder="Ird be a neved..." />
+                                    </div>
+                                    <div class="col-12 col-md-6 col-xl-12">
+                                        <label for="roomSelect" class="form-label">Szoba</label>
+                                        <select id="roomSelect" class="form-select"></select>
+                                    </div>
+                                    <div class="col-12 d-grid">
+                                        <button id="favoriteRoomBtn" class="btn btn-outline-light">Kedvenc szoba</button>
+                                    </div>
+                                </div>
 
-                        <div class="row g-2 mb-3 controls-row">
-                            <div class="col-8">
-                                <input id="newRoomInput" class="form-control" maxlength="100" placeholder="Uj szoba neve..." />
-                            </div>
-                            <div class="col-4 d-grid">
-                                <button id="createRoomBtn" class="btn btn-outline-light">Szoba letrehozas</button>
-                            </div>
-                        </div>
+                                <div class="row g-2 mb-3 controls-row">
+                                    <div class="col-8 col-xl-12">
+                                        <input id="newRoomInput" class="form-control" maxlength="100" placeholder="Uj szoba neve..." />
+                                    </div>
+                                    <div class="col-4 col-xl-12 d-grid">
+                                        <button id="createRoomBtn" class="btn btn-outline-light">Szoba letrehozas</button>
+                                    </div>
+                                </div>
 
-                        <div class="row g-2 mb-3 controls-row">
-                            <div class="col-12 col-md-4 d-flex align-items-center">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="privateRoomToggle" />
-                                    <label class="form-check-label" for="privateRoomToggle">Privat szoba</label>
+                                <div class="row g-2 mb-3 controls-row">
+                                    <div class="col-12 d-flex align-items-center">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="privateRoomToggle" />
+                                            <label class="form-check-label" for="privateRoomToggle">Privat szoba</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12" id="privateMembersWrap" hidden>
+                                        <label for="privateMembersSelect" class="form-label mb-1">Meghivott userek</label>
+                                        <select id="privateMembersSelect" class="form-select" multiple size="4"></select>
+                                        <small class="text-light opacity-75">Tipp: Ctrl+Click a tobbes kijeloleshez.</small>
+                                    </div>
+                                </div>
+
+                                <div class="row g-2 mb-3 controls-row" id="privateJoinWrap" hidden>
+                                    <div class="col-8 col-xl-12">
+                                        <input id="privateInviteCodeInput" class="form-control" maxlength="32" placeholder="Privat meghivokod" />
+                                    </div>
+                                    <div class="col-4 col-xl-12 d-grid">
+                                        <button id="joinPrivateRoomBtn" class="btn btn-outline-light">Csatlakozas koddal</button>
+                                    </div>
+                                </div>
+
+                                <div class="row g-2 mb-3 controls-row" id="roomOwnerToolsWrap" hidden>
+                                    <div class="col-12">
+                                        <label class="form-label mb-1">Privat szoba owner eszkozok</label>
+                                        <div class="owner-code-row mb-2">
+                                            <input id="ownerInviteCode" class="form-control" readonly />
+                                            <button id="copyOwnerInviteBtn" class="btn btn-outline-light" type="button">Kod masolasa</button>
+                                            <button id="rotateInviteBtn" class="btn btn-outline-light" type="button">Uj kod</button>
+                                        </div>
+                                        <div class="owner-members-row">
+                                            <select id="ownerMembersSelect" class="form-select" multiple size="4"></select>
+                                            <button id="removeMemberBtn" class="btn btn-outline-light mt-2" type="button">Kijelolt tag torlese</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-12 col-md-8" id="privateMembersWrap" hidden>
-                                <label for="privateMembersSelect" class="form-label mb-1">Meghivott userek</label>
-                                <select id="privateMembersSelect" class="form-select" multiple size="4"></select>
-                                <small class="text-light opacity-75">Tipp: Ctrl+Click a tobbes kijeloleshez.</small>
-                            </div>
-                        </div>
 
-                        <div class="row g-2 mb-3 controls-row" id="privateJoinWrap" hidden>
-                            <div class="col-8">
-                                <input id="privateInviteCodeInput" class="form-control" maxlength="32" placeholder="Privat meghivokod" />
-                            </div>
-                            <div class="col-4 d-grid">
-                                <button id="joinPrivateRoomBtn" class="btn btn-outline-light">Csatlakozas koddal</button>
-                            </div>
-                        </div>
-
-                        <div class="row g-2 mb-3 controls-row" id="roomOwnerToolsWrap" hidden>
-                            <div class="col-12">
-                                <label class="form-label mb-1">Privat szoba owner eszkozok</label>
-                                <div class="owner-code-row mb-2">
-                                    <input id="ownerInviteCode" class="form-control" readonly />
-                                    <button id="copyOwnerInviteBtn" class="btn btn-outline-light" type="button">Kod masolasa</button>
-                                    <button id="rotateInviteBtn" class="btn btn-outline-light" type="button">Uj kod</button>
+                            <div class="chat-stage">
+                                <div class="row g-2 mb-2 controls-row">
+                                    <div class="col-8">
+                                        <input id="searchInput" class="form-control" maxlength="80" placeholder="Kereses uzenetekben (min. 2 karakter)" />
+                                    </div>
+                                    <div class="col-2 d-grid">
+                                        <button id="searchBtn" class="btn btn-outline-light">Keres</button>
+                                    </div>
+                                    <div class="col-2 d-grid">
+                                        <button id="clearSearchBtn" class="btn btn-outline-light">Torol</button>
+                                    </div>
                                 </div>
-                                <div class="owner-members-row">
-                                    <select id="ownerMembersSelect" class="form-select" multiple size="4"></select>
-                                    <button id="removeMemberBtn" class="btn btn-outline-light mt-2" type="button">Kijelolt tag torlese</button>
+
+                                <div class="composer-tools mb-2">
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="Uzenet tipus valaszto">
+                                        <button class="btn btn-outline-light composer-mode active" data-mode="text" type="button">Text</button>
+                                        <button class="btn btn-outline-light composer-mode" data-mode="code" type="button">Code</button>
+                                        <button class="btn btn-outline-light composer-mode" data-mode="emoji" type="button">Emoji</button>
+                                        <button class="btn btn-outline-light composer-mode" data-mode="image" type="button">Image</button>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <div class="row g-2 mb-2 controls-row">
-                            <div class="col-8">
-                                <input id="searchInput" class="form-control" maxlength="80" placeholder="Kereses uzenetekben (min. 2 karakter)" />
-                            </div>
-                            <div class="col-2 d-grid">
-                                <button id="searchBtn" class="btn btn-outline-light">Keres</button>
-                            </div>
-                            <div class="col-2 d-grid">
-                                <button id="clearSearchBtn" class="btn btn-outline-light">Torol</button>
-                            </div>
-                        </div>
-
-                        <div class="composer-tools mb-2">
-                            <div class="btn-group btn-group-sm" role="group" aria-label="Uzenet tipus valaszto">
-                                <button class="btn btn-outline-light composer-mode active" data-mode="text" type="button">Text</button>
-                                <button class="btn btn-outline-light composer-mode" data-mode="code" type="button">Code</button>
-                                <button class="btn btn-outline-light composer-mode" data-mode="emoji" type="button">Emoji</button>
-                                <button class="btn btn-outline-light composer-mode" data-mode="image" type="button">Image</button>
-                            </div>
-                        </div>
-
-                        <div id="emojiPicker" class="emoji-picker mb-2" hidden>
-                            <button class="emoji-btn" data-emoji="😀" type="button">😀</button>
-                            <button class="emoji-btn" data-emoji="😂" type="button">😂</button>
-                            <button class="emoji-btn" data-emoji="😍" type="button">😍</button>
-                            <button class="emoji-btn" data-emoji="🔥" type="button">🔥</button>
-                            <button class="emoji-btn" data-emoji="✅" type="button">✅</button>
-                            <button class="emoji-btn" data-emoji="❌" type="button">❌</button>
-                            <button class="emoji-btn" data-emoji="👍" type="button">👍</button>
-                            <button class="emoji-btn" data-emoji="👎" type="button">👎</button>
-                            <button class="emoji-btn" data-emoji="🎉" type="button">🎉</button>
-                            <button class="emoji-btn" data-emoji="💡" type="button">💡</button>
-                            <button class="emoji-btn" data-emoji="🚀" type="button">🚀</button>
-                            <button class="emoji-btn" data-emoji="⭐" type="button">⭐</button>
-                            <button class="emoji-btn" data-emoji="💬" type="button">💬</button>
-                            <button class="emoji-btn" data-emoji="💯" type="button">💯</button>
-                            <button class="emoji-btn" data-emoji="🙏" type="button">🙏</button>
-                            <button class="emoji-btn" data-emoji="❤️" type="button">❤️</button>
-                        </div>
-
-                        <div id="imageComposer" class="mt-2 mb-2" hidden>
-                            <label for="imageInput" class="form-label">Kep feltoltes (max 3MB)</label>
-                            <input id="imageInput" type="file" class="form-control" accept="image/png,image/jpeg,image/webp,image/gif" />
-                        </div>
-
-                        <p id="typingIndicator" class="typing-indicator mb-2">&nbsp;</p>
-                        <p id="smartHint" class="small text-light opacity-75 mb-2">Tipp: valassz szobat es add meg a neved kuldes elott.</p>
-
-                        <div id="messages" class="chat-window mb-3" aria-live="polite"></div>
-
-                        <div class="row g-2">
-                            <div class="col-9">
-                                <input id="messageInput" class="form-control" maxlength="2000" placeholder="Ird be az uzeneted..." />
-                                <div class="composer-hints mt-1">
-                                    <small id="messageCounter">0/2000</small>
-                                    <small id="sendGuardInfo">Add meg a neved, majd valassz szobat a kuldeshez.</small>
+                                <div id="emojiPicker" class="emoji-picker mb-2" hidden>
+                                    <button class="emoji-btn" data-emoji="😀" type="button">😀</button>
+                                    <button class="emoji-btn" data-emoji="😂" type="button">😂</button>
+                                    <button class="emoji-btn" data-emoji="😍" type="button">😍</button>
+                                    <button class="emoji-btn" data-emoji="🔥" type="button">🔥</button>
+                                    <button class="emoji-btn" data-emoji="✅" type="button">✅</button>
+                                    <button class="emoji-btn" data-emoji="❌" type="button">❌</button>
+                                    <button class="emoji-btn" data-emoji="👍" type="button">👍</button>
+                                    <button class="emoji-btn" data-emoji="👎" type="button">👎</button>
+                                    <button class="emoji-btn" data-emoji="🎉" type="button">🎉</button>
+                                    <button class="emoji-btn" data-emoji="💡" type="button">💡</button>
+                                    <button class="emoji-btn" data-emoji="🚀" type="button">🚀</button>
+                                    <button class="emoji-btn" data-emoji="⭐" type="button">⭐</button>
+                                    <button class="emoji-btn" data-emoji="💬" type="button">💬</button>
+                                    <button class="emoji-btn" data-emoji="💯" type="button">💯</button>
+                                    <button class="emoji-btn" data-emoji="🙏" type="button">🙏</button>
+                                    <button class="emoji-btn" data-emoji="❤️" type="button">❤️</button>
                                 </div>
-                            </div>
-                            <div class="col-3 d-grid">
-                                <button id="sendBtn" class="btn btn-accent" disabled>Kuldes</button>
+
+                                <div id="imageComposer" class="mt-2 mb-2" hidden>
+                                    <label for="imageInput" class="form-label">Kep feltoltes (max 3MB)</label>
+                                    <input id="imageInput" type="file" class="form-control" accept="image/png,image/jpeg,image/webp,image/gif" />
+                                </div>
+
+                                <p id="typingIndicator" class="typing-indicator mb-2">&nbsp;</p>
+                                <p id="smartHint" class="small text-light opacity-75 mb-2">Tipp: valassz szobat es add meg a neved kuldes elott.</p>
+
+                                <div id="messages" class="chat-window mb-3" aria-live="polite"></div>
+
+                                <div class="row g-2">
+                                    <div class="col-9">
+                                        <input id="messageInput" class="form-control" maxlength="2000" placeholder="Ird be az uzeneted..." />
+                                        <div class="composer-hints mt-1">
+                                            <small id="messageCounter">0/2000</small>
+                                            <small id="sendGuardInfo">Add meg a neved, majd valassz szobat a kuldeshez.</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-3 d-grid">
+                                        <button id="sendBtn" class="btn btn-accent" disabled>Kuldes</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </section>
