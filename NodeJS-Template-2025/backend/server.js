@@ -23,7 +23,7 @@ const {
     clampMessageContentByType,
     isSafeRoomId
 } = require('./security/validation.js');
-const { AgarRoom } = require('./games/arcade-rooms.js');
+const { AgarRoom, SlitherRoom, RacingRoom, FlappyRoom } = require('./games/arcade-rooms.js');
 
 //!Beállítások
 const app = express();
@@ -480,6 +480,24 @@ function setupSocketServer(httpServer) {
                     gameRoom = new AgarRoom(gameRoomKey, {
                         gameAreaWidth: 10000,
                         gameAreaHeight: 10000,
+                        maxPlayers: 20
+                    });
+                } else if (gameMode === 'slither') {
+                    gameRoom = new SlitherRoom(gameRoomKey, {
+                        gameAreaWidth: 10000,
+                        gameAreaHeight: 10000,
+                        maxPlayers: 20
+                    });
+                } else if (gameMode === 'racing') {
+                    gameRoom = new RacingRoom(gameRoomKey, {
+                        gameAreaWidth: 10000,
+                        gameAreaHeight: 10000,
+                        maxPlayers: 20
+                    });
+                } else if (gameMode === 'flappy') {
+                    gameRoom = new FlappyRoom(gameRoomKey, {
+                        gameAreaWidth: 10000,
+                        gameAreaHeight: 8000,
                         maxPlayers: 20
                     });
                 } else {
