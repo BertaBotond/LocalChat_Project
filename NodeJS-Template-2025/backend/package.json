@@ -12,7 +12,9 @@
         "diag:network": "node scripts/network-diagnostics.js",
         "diag:db": "node scripts/db-diagnostics.js",
         "doctor": "node scripts/doctor.js",
-        "smoke": "node scripts/startup-smoke.js"
+        "smoke": "node scripts/startup-smoke.js",
+        "verify:full": "node scripts/full-verification.js",
+        "verify:full:nostrict": "node scripts/full-verification.js --no-strict"
     },
     "author": "Kardos Krisztián",
     "license": "ISC",

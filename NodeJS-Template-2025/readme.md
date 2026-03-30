@@ -181,7 +181,15 @@ npm run doctor
 npm run diag:db
 npm run diag:network
 npm run smoke
+npm run verify:full
+npm run verify:full:nostrict
 ```
+
+Teljes ellenorzes futtatas:
+
+1. `verify:full` strict modban fut, es hibakodot ad vissza ha barmelyik kotelezo check elhasal.
+2. `verify:full:nostrict` riportot keszit akkor is, ha vannak hibak (pl. nincs epp futo szerver az API checkhez).
+3. Elo backend szerver ellenorzeshez inditsd kulon terminalban: `npm run up`, majd futtasd a verify parancsot.
 
 ### 2.9 Gyors hibakereses
 
