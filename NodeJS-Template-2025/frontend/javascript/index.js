@@ -12,6 +12,7 @@ let hostsCache = [];
 const typingUsers = new Set();
 let connectedUsersCache = [];
 let currentRoomAccess = null;
+let helpTooltipInstances = [];
 const clientSpamState = {
     lastSentAt: 0,
     lastContent: '',
@@ -69,6 +70,8 @@ const elements = {
     privateRoomToggle: document.getElementById('privateRoomToggle'),
     privateMembersSelect: document.getElementById('privateMembersSelect'),
     privateMembersWrap: document.getElementById('privateMembersWrap'),
+    privateFlowStateBadge: document.getElementById('privateFlowStateBadge'),
+    privateFlowStateText: document.getElementById('privateFlowStateText'),
     privateJoinWrap: document.getElementById('privateJoinWrap'),
     privateInviteCodeInput: document.getElementById('privateInviteCodeInput'),
     joinPrivateRoomBtn: document.getElementById('joinPrivateRoomBtn'),
@@ -215,7 +218,98 @@ function getUsernameQueryParam() {
 
 function updatePrivateMembersVisibility() {
     const isPrivate = elements.privateRoomToggle.checked;
-    elements.privateMembersWrap.hidden = !isPrivate;
+    const isExistingPrivateRoom = Boolean(currentRoomAccess?.isPrivate);
+    elements.privateMembersWrap.hidden = !isPrivate || isExistingPrivateRoom;
+    updatePrivateRoomFlowState();
+}
+
+function setPrivateFlowState(stateClass, badgeText, helpText) {
+    if (!elements.privateFlowStateBadge || !elements.privateFlowStateText) {
+        return;
+    }
+
+    elements.privateFlowStateBadge.className = 'private-flow-badge';
+    if (stateClass) {
+        elements.privateFlowStateBadge.classList.add(stateClass);
+    }
+
+    elements.privateFlowStateBadge.textContent = badgeText;
+    elements.privateFlowStateText.textContent = helpText;
+}
+
+function updatePrivateRoomFlowState() {
+    const isPrivateToggleOn = elements.privateRoomToggle.checked;
+
+    if (currentRoomAccess?.isPrivate && currentRoomAccess?.isOwner) {
+        setPrivateFlowState(
+            'state-owner',
+            'Owner mod',
+            'Ez a te privat szobad. A kodot megoszthatod, uj kodot generalhatsz, es tagokat torolhetsz az owner eszkozokkel.'
+        );
+        return;
+    }
+
+    if (currentRoomAccess?.isPrivate && !currentRoomAccess?.hasAccess) {
+        setPrivateFlowState(
+            'state-join',
+            'Kod szukseges',
+            'Ehhez a privat szobahoz meghivokod kell. Add meg a kodot, majd kattints a Csatlakozas koddal gombra.'
+        );
+        return;
+    }
+
+    if (currentRoomAccess?.isPrivate && currentRoomAccess?.hasAccess) {
+        setPrivateFlowState(
+            'state-member',
+            'Privat tag',
+            'Sikeresen bent vagy a privat szobaban. Uzenetet mar kuldhetsz, a kuldes automatikusan ehhez a szobahoz megy.'
+        );
+        return;
+    }
+
+    if (isPrivateToggleOn) {
+        setPrivateFlowState(
+            'state-owner',
+            'Letrehozas mod',
+            'Valassz meghivott usereket, majd hozz letre uj szobat. A rendszer automatikusan meghivokodot general.'
+        );
+        return;
+    }
+
+    setPrivateFlowState(
+        '',
+        'Public mod',
+        'Kapcsold be a privat opciot uj privat szoba letrehozasahoz, vagy hasznalj meghivokodot privat csatlakozashoz.'
+    );
+}
+
+function initHelpTooltips() {
+    if (!window.bootstrap?.Tooltip) {
+        return;
+    }
+
+    for (const tooltip of helpTooltipInstances) {
+        tooltip.dispose();
+    }
+    helpTooltipInstances = [];
+
+    const tips = Array.from(document.querySelectorAll('.help-tip[data-help]'));
+    for (const tip of tips) {
+        const message = tip.getAttribute('data-help') || '';
+        tip.setAttribute('data-bs-toggle', 'tooltip');
+        tip.setAttribute('data-bs-placement', 'bottom');
+        tip.setAttribute('data-bs-custom-class', 'help-bootstrap-tooltip');
+        tip.setAttribute('data-bs-title', message);
+        tip.setAttribute('title', message);
+
+        const instance = new window.bootstrap.Tooltip(tip, {
+            container: 'body',
+            boundary: 'viewport',
+            trigger: 'hover focus'
+        });
+
+        helpTooltipInstances.push(instance);
+    }
 }
 
 function renderNetworkBackupPlan(planItems = []) {
@@ -274,8 +368,7 @@ async function refreshCurrentRoomAccess() {
     }
 
     updateActionGuards();
-
-    updateActionGuards();
+    updatePrivateMembersVisibility();
 }
 
 async function loadOwnerMembers() {
@@ -1326,6 +1419,7 @@ async function bootstrap() {
 
     setupSocket();
     bindEvents();
+    initHelpTooltips();
     setComposeMode('text');
     setHostFilter('all');
     loadDraft();

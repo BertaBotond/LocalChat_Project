@@ -42,6 +42,11 @@ html {
     scroll-behavior: smooth;
 }
 
+html,
+body {
+    height: 100%;
+}
+
 body {
     font-family: "Sora", "Segoe UI", sans-serif;
     background:
@@ -68,16 +73,16 @@ body {
 }
 
 .app-shell {
-    min-height: 100vh;
+    min-height: 100dvh;
 }
 
 .app-sidebar {
-    align-self: start;
+    align-self: stretch;
 }
 
 .sidebar-utility-panel {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .sidebar-utility-grid {
@@ -127,7 +132,7 @@ body {
 
 .chat-main-panel {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .chat-workspace-grid {
@@ -149,6 +154,7 @@ body {
 .chat-settings-stack {
     border-right: 1px solid var(--border-color);
     padding-right: 0.9rem;
+    min-width: 0;
 }
 
 .stack-title {
@@ -358,6 +364,27 @@ body {
     transform: translateX(-50%) translateY(0);
 }
 
+.help-tip[data-bs-toggle="tooltip"]::after {
+    display: none;
+}
+
+.help-bootstrap-tooltip .tooltip-inner {
+    background: rgba(10, 20, 28, 0.95);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+    text-align: left;
+    font-size: 0.74rem;
+    line-height: 1.35;
+    max-width: 320px;
+    padding: 0.55rem 0.6rem;
+}
+
+[data-theme="light"] .help-bootstrap-tooltip .tooltip-inner {
+    background: rgba(248, 252, 255, 0.96);
+}
+
 .helper-inline-label {
     display: inline-flex;
     align-items: center;
@@ -376,14 +403,22 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .monospace-box code {
     font-family: "Monaco", "Courier New", monospace;
     font-size: 0.85rem;
     color: var(--accent-color);
-    word-break: break-all;
+    word-break: break-word;
+    overflow-wrap: anywhere;
     flex: 1;
+    min-width: 0;
+}
+
+.monospace-box .btn {
+    flex-shrink: 0;
 }
 
 /* ===== STATUS ROWS ===== */
@@ -700,8 +735,8 @@ body {
     border: 1px solid rgba(164, 198, 219, 0.34);
     border-radius: 12px;
     padding: 0.95rem;
-    min-height: 460px;
-    max-height: min(72vh, 760px);
+    min-height: 340px;
+    max-height: min(64vh, 700px);
     overflow-y: auto;
     margin-bottom: 0.75rem;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 34px rgba(1, 9, 14, 0.42);
@@ -1037,4 +1072,157 @@ body {
 
 .controls-row:last-of-type {
     border-bottom: none;
+}
+
+.owner-members-row {
+    align-items: flex-start;
+}
+
+.private-flow-card {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 0.55rem 0.65rem;
+    background: rgba(124, 216, 255, 0.1);
+}
+
+[data-theme="light"] .private-flow-card {
+    background: rgba(23, 127, 168, 0.08);
+}
+
+.private-flow-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.14rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: rgba(10, 20, 28, 0.35);
+    color: var(--accent-color);
+    font-size: 0.69rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    margin-bottom: 0.35rem;
+}
+
+.private-flow-badge.state-owner {
+    color: #8df7c9;
+    border-color: rgba(16, 185, 129, 0.45);
+    background: rgba(16, 185, 129, 0.15);
+}
+
+.private-flow-badge.state-join {
+    color: #ffd69a;
+    border-color: rgba(245, 158, 11, 0.45);
+    background: rgba(245, 158, 11, 0.16);
+}
+
+.private-flow-badge.state-member {
+    color: #b6deff;
+    border-color: rgba(59, 130, 246, 0.45);
+    background: rgba(59, 130, 246, 0.15);
+}
+
+.private-flow-text {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
+@media (min-width: 992px) {
+    body {
+        overflow: hidden;
+        min-height: 100dvh;
+    }
+
+    .app-shell {
+        height: 100dvh;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .app-header {
+        flex-shrink: 0;
+        margin-bottom: 0.8rem;
+    }
+
+    .app-shell > .row {
+        --bs-gutter-x: 0.9rem;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        margin-bottom: 0;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .app-sidebar {
+        height: 100%;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-gutter: stable;
+        padding-right: 0.35rem;
+    }
+
+    .app-main {
+        height: 100%;
+        min-height: 0;
+        display: flex;
+        overflow: hidden;
+    }
+
+    .chat-main-panel {
+        height: 100%;
+        min-height: 0;
+        margin-bottom: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .chat-workspace-grid {
+        flex: 1;
+        min-height: 0;
+        grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.75fr);
+        align-items: stretch;
+    }
+
+    .chat-settings-stack {
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-gutter: stable;
+        padding-right: 0.75rem;
+        max-height: 100%;
+    }
+
+    .chat-stage {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .chat-window {
+        flex: 1;
+        min-height: 260px;
+        max-height: none;
+    }
+}
+
+@media (max-width: 1024px) {
+    .owner-members-row {
+        flex-direction: column;
+    }
+
+    .monospace-box {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .monospace-box .btn {
+        width: 100%;
+    }
 }

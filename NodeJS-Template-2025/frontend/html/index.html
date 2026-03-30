@@ -145,7 +145,7 @@
                     </section>
                 </aside>
 
-                <main class="col-12 col-lg-9">
+                <main class="col-12 col-lg-9 app-main">
                     <section class="panel p-3 mb-3 chat-main-panel">
                         <div class="chat-panel-head mb-3">
                             <div>
@@ -188,7 +188,16 @@
                                     <div class="col-12 d-flex align-items-center">
                                         <div class="form-check form-switch">
                                             <input class="form-check-input" type="checkbox" id="privateRoomToggle" />
-                                            <label class="form-check-label" for="privateRoomToggle">Privat szoba</label>
+                                            <label class="form-check-label" for="privateRoomToggle">
+                                                Privat szoba
+                                                <span class="help-tip" tabindex="0" role="note" aria-label="Privat szoba mukodes" data-help="Privat szobaba csak meghivott userek lephetnek be. Join koddal lehet csatlakozni, ownerkent uj kodot generalhatsz es tagokat kezelhetsz.">i</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="private-flow-card" id="privateFlowCard">
+                                            <span class="private-flow-badge" id="privateFlowStateBadge">Public mod</span>
+                                            <p class="private-flow-text mb-0" id="privateFlowStateText">Kapcsold be a privat opciot uj privat szoba letrehozasahoz, vagy hasznalj meghivokodot privat csatlakozashoz.</p>
                                         </div>
                                     </div>
                                     <div class="col-12" id="privateMembersWrap" hidden>
