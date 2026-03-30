@@ -17,27 +17,33 @@
     <body>
         <div class="app-shell container-fluid py-3 px-3 px-md-4">
             <header class="app-header mb-3 mb-md-4">
-                <div>
+                <div class="app-header-main">
                     <p class="eyebrow mb-1">Localchat Suite</p>
                     <h1 class="mb-1">LAN Chat + Host Discovery</h1>
                     <p class="mb-0">Gyors helyi cseveges, host statusz es diagnosztika egyetlen feluleten.</p>
                 </div>
-                <div class="header-badges">
-                    <button id="themeToggleBtn" class="btn btn-sm btn-outline-light" title="Téma váltásása">🌙</button>
-                    <span class="badge-soft" id="serverStatus">Kapcsolodas...</span>
-                    <span class="badge-soft" id="discoveryStatus">Discovery indul...</span>
-                    <a class="btn btn-sm btn-outline-light" href="/admin">Admin</a>
-                </div>
-                <div class="header-meta">
-                    <span id="logStatusInfo" class="meta-pill">Titkositott log: ellenorzes...</span>
-                    <span id="recoveryStatusInfo" class="meta-pill">Recovery: ellenorzes...</span>
+
+                <div class="app-header-side">
+                    <div class="header-badges">
+                        <button id="themeToggleBtn" class="btn btn-sm btn-outline-light" title="Téma váltásása">🌙</button>
+                        <span class="badge-soft" id="serverStatus">Kapcsolodas...</span>
+                        <span class="badge-soft" id="discoveryStatus">Discovery indul...</span>
+                        <a class="btn btn-sm btn-outline-light" href="/admin">Admin</a>
+                    </div>
+                    <div class="header-meta">
+                        <span id="logStatusInfo" class="meta-pill">Titkositott log: ellenorzes...</span>
+                        <span id="recoveryStatusInfo" class="meta-pill">Recovery: ellenorzes...</span>
+                    </div>
                 </div>
             </header>
 
             <div class="row g-3">
                 <aside class="col-12 col-lg-3 app-sidebar">
                     <section class="panel p-3 mb-3">
-                        <h2 class="h5 mb-3">Kliens csatlakozas</h2>
+                        <h2 class="h5 mb-3">
+                            Kliens csatlakozas
+                            <span class="help-tip" tabindex="0" role="note" aria-label="Kliens csatlakozas segitseg" data-help="Itt latod a hasznalhato LAN URL-t, az IP tartomanyt es a halozati diagnosztikat. A Copy gombbal gyorsan megoszthatod a cimet.">i</span>
+                        </h2>
                         <div class="status-row mb-2">
                             <span>Hasznald ezt a cimet a klienseken:</span>
                             <div class="monospace-box mb-2">
@@ -56,7 +62,10 @@
                     </section>
 
                     <section class="panel p-3 mb-3">
-                        <h2 class="h5 mb-3">Host Statuszok</h2>
+                        <h2 class="h5 mb-3">
+                            Host Statuszok
+                            <span class="help-tip" tabindex="0" role="note" aria-label="Host statusz segitseg" data-help="A statusz chippekre kattintva szurhetsz: osszes, online, offline, unknown. A host listaban a statusz badge-re kattintva is aktivalhato a szuro.">i</span>
+                        </h2>
                         <div class="host-filter-grid" id="hostFilterControls" role="group" aria-label="Host statusz szurok">
                             <button class="host-filter-chip active" type="button" data-filter="all">
                                 Osszes
@@ -81,13 +90,19 @@
                     </section>
 
                     <section class="panel p-3 mb-3">
-                        <h2 class="h5 mb-3">Connected Users</h2>
+                        <h2 class="h5 mb-3">
+                            Connected Users
+                            <span class="help-tip" tabindex="0" role="note" aria-label="Connected users segitseg" data-help="Az aktiv socket klienseket latod usernevvel es kliens IP-vel. Ez segit valos idoben ellenorizni, kik vannak fent.">i</span>
+                        </h2>
                         <ul class="list-unstyled users-list" id="usersList"></ul>
                         <small class="text-light opacity-75 d-block mt-2">Total: <span id="statConnectedUsers">0</span> users</small>
                     </section>
 
                     <section class="panel p-3 mb-3">
-                        <h2 class="h5 mb-3">Chat Stats</h2>
+                        <h2 class="h5 mb-3">
+                            Chat Stats
+                            <span class="help-tip" tabindex="0" role="note" aria-label="Chat stats segitseg" data-help="Osszesitett metrikak: total messages, mai uzenetszam, es szobak szama. Gyors egeszsegjelzes release es teszt alatt.">i</span>
+                        </h2>
                         <div class="stat-boxes">
                             <div class="stat-box">
                                 <span class="stat-label">Total Messages</span>
@@ -105,16 +120,25 @@
                     </section>
 
                     <section class="panel p-3 sidebar-utility-panel">
-                        <h2 class="h5 mb-3">LAN Utility</h2>
+                        <h2 class="h5 mb-3">
+                            LAN Utility
+                            <span class="help-tip" tabindex="0" role="note" aria-label="LAN utility segitseg" data-help="Quick LAN Test gyors visszajelzest ad a kapcsolatokrol. A Backup Terv a tipikus policy, firewall es VLAN problemakhoz ad kovetkezo lepest.">i</span>
+                        </h2>
                         <div class="sidebar-utility-grid">
                             <article class="sidebar-mini-card">
-                                <h3 class="h6 mb-2">LAN Tools</h3>
+                                <h3 class="h6 mb-2">
+                                    LAN Tools
+                                    <span class="help-tip" tabindex="0" role="note" aria-label="LAN tools segitseg" data-help="A Quick LAN Test ellenorzi, hogy a kliens gepek elerik-e a szervert es hogy a discovery hostok mennyire aktivak.">i</span>
+                                </h3>
                                 <button id="quickLanTestBtn" class="btn btn-sm btn-outline-light w-100 mb-2">Quick LAN Test</button>
                                 <div id="quickLanTestList" class="small text-light"></div>
                             </article>
 
                             <article class="sidebar-mini-card">
-                                <h3 class="h6 mb-2">Backup Terv</h3>
+                                <h3 class="h6 mb-2">
+                                    Backup Terv
+                                    <span class="help-tip" tabindex="0" role="note" aria-label="Backup terv segitseg" data-help="Ha a LAN kapcsolat nem stabil, itt kapsz fallback utvonalat: kozponti szerver gep, policy egyeztetes, halozati szeparacio kezelese.">i</span>
+                                </h3>
                                 <ul class="list-unstyled mb-0" id="networkBackupList"></ul>
                             </article>
                         </div>
@@ -123,10 +147,19 @@
 
                 <main class="col-12 col-lg-9">
                     <section class="panel p-3 mb-3 chat-main-panel">
-                        <h2 class="h5 mb-3">Szoba Szerkesztes</h2>
+                        <div class="chat-panel-head mb-3">
+                            <div>
+                                <h2 class="h5 mb-1">
+                                    Szoba Szerkesztes
+                                    <span class="help-tip" tabindex="0" role="note" aria-label="Szoba szerkesztes segitseg" data-help="Itt allitod a usernevet, szobat, privat tagsagot, keresest es kuldesi modot. A rendszer szobankent menti a draftot es valos idoben frissit.">i</span>
+                                </h2>
+                                <p class="chat-panel-subtitle mb-0">Messenger/Discord stilusu elrendezes: bal oldali vezerles, jobb oldali beszelgetes fokusz.</p>
+                            </div>
+                        </div>
 
                         <div class="chat-workspace-grid">
                             <div class="chat-settings-stack">
+                                <p class="stack-title">Profil es szoba kezeles</p>
                                 <div class="row g-2 mb-3 controls-row">
                                     <div class="col-12 col-md-6 col-xl-12">
                                         <label for="usernameInput" class="form-label">Felhasznalonevod</label>
@@ -150,6 +183,7 @@
                                     </div>
                                 </div>
 
+                                <p class="stack-title">Privat szoba opciok</p>
                                 <div class="row g-2 mb-3 controls-row">
                                     <div class="col-12 d-flex align-items-center">
                                         <div class="form-check form-switch">
@@ -203,6 +237,10 @@
                                 </div>
 
                                 <div class="composer-tools mb-2">
+                                    <span class="helper-inline-label">
+                                        Uzenet modok
+                                        <span class="help-tip" tabindex="0" role="note" aria-label="Uzenet modok segitseg" data-help="Text normal chat, Code kodblokk, Emoji gyors reakcio, Image kep feltoltes. A megfelelo mode automatikus megjelenitessel kuld.">i</span>
+                                    </span>
                                     <div class="btn-group btn-group-sm" role="group" aria-label="Uzenet tipus valaszto">
                                         <button class="btn btn-outline-light composer-mode active" data-mode="text" type="button">Text</button>
                                         <button class="btn btn-outline-light composer-mode" data-mode="code" type="button">Code</button>
