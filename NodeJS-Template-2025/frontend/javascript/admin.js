@@ -12,7 +12,7 @@ const elements = {
 };
 
 function setStatus(message, isError = false) {
-    elements.adminStatus.textContent = `Status: ${message}`;
+    elements.adminStatus.textContent = `Státusz: ${message}`;
     elements.adminStatus.style.color = isError ? '#fecaca' : '#b0cadc';
 }
 
@@ -133,14 +133,14 @@ function renderDiagnostics(payload) {
 }
 
 async function loadDiagnostics() {
-    setStatus('diagnosztika frissitese...');
+    setStatus('diagnosztika frissítése...');
     const payload = await fetchAdminJson('/api/admin/diagnostics');
     renderDiagnostics(payload);
-    setStatus('diagnosztika frissitve');
+    setStatus('diagnosztika frissítve');
 }
 
 async function runSmoke() {
-    setStatus('startup smoke futtatasa...');
+    setStatus('startup smoke futtatása...');
     const payload = await fetchAdminJson('/api/admin/smoke-test', {
         method: 'POST',
         body: JSON.stringify({})

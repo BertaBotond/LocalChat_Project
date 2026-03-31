@@ -168,6 +168,7 @@ body {
 
 .chat-stage {
     position: relative;
+    min-width: 0;
 }
 
 /* ===== HEADER ===== */
@@ -431,7 +432,8 @@ body {
     font-size: 0.75rem;
     color: var(--text-secondary);
     font-weight: 600;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0;
+    white-space: nowrap;
 }
 
 /* ===== MONOSPACE BOX ===== */
@@ -727,6 +729,11 @@ body {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+    align-items: center;
+}
+
+.composer-tools .btn-group {
+    flex-wrap: wrap;
 }
 
 .composer-mode {
@@ -1015,10 +1022,21 @@ body {
 .chat-stage-view {
     display: none;
     animation: fadeIn 0.3s ease;
+    min-width: 0;
 }
 
 .chat-stage-view.active {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+#chatStageView {
+    overflow: hidden;
+}
+
+#gameStageView {
+    overflow-y: auto;
 }
 
 @keyframes fadeIn {
@@ -1201,6 +1219,20 @@ body {
 
     .game-stats-panel {
         max-height: 150px;
+    }
+
+    .composer-tools {
+        align-items: stretch;
+    }
+
+    .helper-inline-label {
+        width: 100%;
+        margin-bottom: 0.15rem;
+    }
+
+    #startArcadeGameBtn {
+        width: 100%;
+        margin-left: 0 !important;
     }
 }
 

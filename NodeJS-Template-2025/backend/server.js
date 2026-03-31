@@ -438,6 +438,39 @@ function setupSocketServer(httpServer) {
         // ARCADE GAME EVENT HANDLERS
         // ============================================================================
 
+        const detachArcadePlayer = ({ notifyRoom = true } = {}) => {
+            const gameRoomKey = socket.data.arcadeGameKey;
+            const playerId = socket.data.arcadePlayerId;
+
+            if (!gameRoomKey || !playerId) {
+                return;
+            }
+
+            const gameRoom = activeArcadeRooms.get(gameRoomKey);
+
+            socket.data.arcadeGameKey = null;
+            socket.data.arcadePlayerId = null;
+
+            if (!gameRoom) {
+                return;
+            }
+
+            gameRoom.removePlayer(playerId);
+
+            const roomIdMatch = /^arcade:(\d+):/.exec(gameRoomKey);
+            const roomId = roomIdMatch ? Number(roomIdMatch[1]) : null;
+
+            if (gameRoom.getPlayerCount() <= 0) {
+                gameRoom.stop();
+                activeArcadeRooms.delete(gameRoomKey);
+                return;
+            }
+
+            if (notifyRoom && Number.isFinite(roomId)) {
+                io.to(`room:${roomId}`).emit('arcade:stateUpdate', gameRoom.getState());
+            }
+        };
+
         socket.on('arcade:startGame', async (payload) => {
             if (!allowSocketMessage()) return;
 
@@ -668,7 +701,13 @@ function setupSocketServer(httpServer) {
             gameRoom.queueInput(playerId, inputFrame);
         });
 
+        socket.on('arcade:leave', () => {
+            detachArcadePlayer({ notifyRoom: true });
+        });
+
         socket.on('disconnect', async () => {
+            detachArcadePlayer({ notifyRoom: true });
+
             if (socket.data.roomId && socket.data.username) {
                 socket.to(`room:${socket.data.roomId}`).emit('typingUpdate', {
                     roomId: socket.data.roomId,

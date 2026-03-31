@@ -29,7 +29,7 @@ function switchGameView(view) {
     };
 
     if (view === 'game' && !currentGameMode) {
-        alert('Valassz ki egy jatek modot eloszor!');
+        alert('Válassz ki egy játékmódot először!');
         return;
     }
     
@@ -53,12 +53,22 @@ function startArcadeGame(gameMode, socket, roomId, username) {
     currentGameMode = gameMode;
     
     if (!socket) {
-        alert('Socket connection not active.');
+        alert('A socketkapcsolat nem aktív.');
         return;
     }
 
     const safeRoomId = Number(roomId);
     const safeUsername = String(username || '').trim();
+
+    if (!Number.isFinite(safeRoomId) || safeRoomId <= 0) {
+        alert('Érvénytelen szobaazonosító.');
+        return;
+    }
+
+    if (safeUsername.length < 2) {
+        alert('Adj meg legalább 2 karakteres felhasználónevet.');
+        return;
+    }
 
     socket.emit('arcade:startGame', {
         roomId: safeRoomId,
@@ -158,7 +168,7 @@ function updateGameScorePanel() {
         })
         .join('');
 
-    gameViewPlayers.textContent = `Players: ${gameState.players.length}`;
+    gameViewPlayers.textContent = `Játékosok: ${gameState.players.length}`;
 }
 
 function getPlayerStatText(player) {
@@ -166,13 +176,13 @@ function getPlayerStatText(player) {
 
     switch (currentGameMode) {
         case 'agar':
-            return `${Math.round(player.score || 0)} mass`;
+            return `${Math.round(player.score || 0)} tömeg`;
         case 'slither':
-            return `${Math.round(player.score || 0)} segments`;
+            return `${Math.round(player.score || 0)} szegmens`;
         case 'racing':
             return `CP: ${Math.round(player.score || 0)}`;
         case 'flappy':
-            return `${Math.round(player.score || 0)} meters`;
+            return `${Math.round(player.score || 0)} méter`;
         default:
             return String(Math.round(player.score || 0));
     }
@@ -200,7 +210,7 @@ function renderArcadeGame() {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.font = '16px Sora';
         ctx.textAlign = 'center';
-        ctx.fillText('Waiting for game data...', canvas.width / 2, canvas.height / 2);
+        ctx.fillText('Várakozás a játékadatokra...', canvas.width / 2, canvas.height / 2);
         drawFPS(ctx);
         return;
     }
@@ -255,7 +265,7 @@ function renderAgarEntities(ctx, entities) {
             ctx.fillStyle = 'white';
             ctx.font = 'bold 12px Sora';
             ctx.textAlign = 'center';
-            ctx.fillText(entity.playerName || 'Unknown', entity.x, entity.y - radius - 8);
+            ctx.fillText(entity.playerName || 'Ismeretlen', entity.x, entity.y - radius - 8);
         }
     });
 }
@@ -285,7 +295,7 @@ function renderSlitherEntities(ctx, entities) {
                 ctx.fillStyle = 'white';
                 ctx.font = 'bold 12px Sora';
                 ctx.textAlign = 'center';
-                ctx.fillText(entity.playerName || 'Unknown', head.x, head.y - 12);
+                ctx.fillText(entity.playerName || 'Ismeretlen', head.x, head.y - 12);
             }
         }
     });
@@ -316,7 +326,7 @@ function renderRacingEntities(ctx, entities) {
             ctx.fillStyle = 'white';
             ctx.font = 'bold 12px Sora';
             ctx.textAlign = 'center';
-            ctx.fillText(entity.playerName || 'Unknown', entity.x, entity.y - 20);
+            ctx.fillText(entity.playerName || 'Ismeretlen', entity.x, entity.y - 20);
         }
     });
 }
@@ -336,7 +346,7 @@ function renderFlappyEntities(ctx, entities) {
             ctx.fillStyle = 'white';
             ctx.font = 'bold 12px Sora';
             ctx.textAlign = 'center';
-            ctx.fillText(entity.playerName || 'Unknown', entity.x, entity.y - 20);
+            ctx.fillText(entity.playerName || 'Ismeretlen', entity.x, entity.y - 20);
         } else if (entity.type === 'obstacle') {
             ctx.fillStyle = '#2ecc71';
             ctx.fillRect(entity.x, entity.y, entity.width || 40, entity.height || 150);
