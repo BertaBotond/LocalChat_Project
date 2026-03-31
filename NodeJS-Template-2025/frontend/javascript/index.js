@@ -7,9 +7,12 @@ let isTyping = false;
 let healthTimer;
 let currentComposeMode = 'text';
 let isSocketConnected = false;
+let hostFilterState = 'all';
+let hostsCache = [];
 const typingUsers = new Set();
 let connectedUsersCache = [];
 let currentRoomAccess = null;
+let helpTooltipInstances = [];
 const clientSpamState = {
     lastSentAt: 0,
     lastContent: '',
@@ -32,14 +35,22 @@ const elements = {
     networkInfo: document.getElementById('networkInfo'),
     clientConnectUrl: document.getElementById('clientConnectUrl'),
     copyConnectUrlBtn: document.getElementById('copyConnectUrlBtn'),
+    footerNow: document.getElementById('footerNow'),
+    footerLastSync: document.getElementById('footerLastSync'),
+    footerJumpLatestBtn: document.getElementById('footerJumpLatestBtn'),
+    footerCopyUrlBtn: document.getElementById('footerCopyUrlBtn'),
+    footerQuickRefreshBtn: document.getElementById('footerQuickRefreshBtn'),
     appToast: document.getElementById('appToast'),
     statTotalMessages: document.getElementById('statTotalMessages'),
     statMessagesToday: document.getElementById('statMessagesToday'),
     statTotalRooms: document.getElementById('statTotalRooms'),
     statConnectedUsers: document.getElementById('statConnectedUsers'),
+    allCount: document.getElementById('allCount'),
     onlineCount: document.getElementById('onlineCount'),
     offlineCount: document.getElementById('offlineCount'),
     unknownCount: document.getElementById('unknownCount'),
+    hostFilterControls: document.getElementById('hostFilterControls'),
+    hostFilterHint: document.getElementById('hostFilterHint'),
     hostsList: document.getElementById('hostsList'),
     usersList: document.getElementById('usersList'),
     usernameInput: document.getElementById('usernameInput'),
@@ -64,6 +75,8 @@ const elements = {
     privateRoomToggle: document.getElementById('privateRoomToggle'),
     privateMembersSelect: document.getElementById('privateMembersSelect'),
     privateMembersWrap: document.getElementById('privateMembersWrap'),
+    privateFlowStateBadge: document.getElementById('privateFlowStateBadge'),
+    privateFlowStateText: document.getElementById('privateFlowStateText'),
     privateJoinWrap: document.getElementById('privateJoinWrap'),
     privateInviteCodeInput: document.getElementById('privateInviteCodeInput'),
     joinPrivateRoomBtn: document.getElementById('joinPrivateRoomBtn'),
@@ -75,7 +88,20 @@ const elements = {
     removeMemberBtn: document.getElementById('removeMemberBtn'),
     networkBackupList: document.getElementById('networkBackupList'),
     quickLanTestBtn: document.getElementById('quickLanTestBtn'),
-    quickLanTestList: document.getElementById('quickLanTestList')
+    quickLanTestList: document.getElementById('quickLanTestList'),
+    // Arcade Game Elements
+    startArcadeGameBtn: document.getElementById('startArcadeGameBtn'),
+    arcadeGameSelectorModal: document.getElementById('arcadeGameSelectorModal'),
+    gameViewTab: document.getElementById('gameViewTab'),
+    chatStageView: document.getElementById('chatStageView'),
+    gameStageView: document.getElementById('gameStageView'),
+    arcadeGameCanvas: document.getElementById('arcadeGameCanvas'),
+    leaveArcadeGameBtn: document.getElementById('leaveArcadeGameBtn'),
+    gameViewTitle: document.getElementById('gameViewTitle'),
+    gameViewPlayers: document.getElementById('gameViewPlayers'),
+    gameStatsPanel: document.getElementById('gameStatsPanel'),
+    gameScoresList: document.getElementById('gameScoresList'),
+    chatStageTabs: Array.from(document.querySelectorAll('.chat-stage-tab'))
 };
 
 const modeButtons = Array.from(document.querySelectorAll('.composer-mode'));
@@ -104,7 +130,7 @@ function updateThemeButtonIcon(theme) {
     const themeBtn = document.getElementById('themeToggleBtn');
     if (themeBtn) {
         themeBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
-        themeBtn.title = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+        themeBtn.title = theme === 'dark' ? 'Váltás világos módra' : 'Váltás sötét módra';
     }
 }
 
@@ -157,7 +183,7 @@ function clearDraft() {
 }
 
 function updateSmartHint(message) {
-    const fallback = 'Tipp: valassz szobat es add meg a neved kuldes elott.';
+    const fallback = 'Tipp: válassz szobát és add meg a neved küldés előtt.';
     const hintEl = elements.smartHint;
     if (!hintEl) {
         return;
@@ -178,25 +204,25 @@ function updateActionGuards() {
     elements.favoriteRoomBtn.disabled = !roomSelected;
 
     if (!usernameOk) {
-        elements.sendGuardInfo.textContent = 'Adj meg legalabb 2 karakteres felhasznalonevet.';
-        updateSmartHint('Adj meg legalabb 2 karakteres felhasznalonevet.');
+        elements.sendGuardInfo.textContent = 'Adj meg legalább 2 karakteres felhasználónevet.';
+        updateSmartHint('Adj meg legalább 2 karakteres felhasználónevet.');
         return;
     }
 
     if (!isSocketConnected) {
-        elements.sendGuardInfo.textContent = 'Nincs aktiv socket kapcsolat, varj a csatlakozasra.';
-        updateSmartHint('A kapcsolat meg nem aktiv. Varj par masodpercet.');
+        elements.sendGuardInfo.textContent = 'Nincs aktív socket kapcsolat, várj a csatlakozásra.';
+        updateSmartHint('A kapcsolat még nem aktív. Várj pár másodpercet.');
         return;
     }
 
     if (privateLocked) {
-        elements.sendGuardInfo.textContent = 'Privat szoba: csatlakozz meghivokoddal, utana kuldhetsz.';
-        updateSmartHint('Ez privat szoba: csatlakozz meghivokoddal.');
+        elements.sendGuardInfo.textContent = 'Privát szoba: csatlakozz meghívókóddal, utána küldhetsz.';
+        updateSmartHint('Ez privát szoba: csatlakozz meghívókóddal.');
         return;
     }
 
-    elements.sendGuardInfo.textContent = 'Kuldes engedelyezve.';
-    updateSmartHint('Minden rendben. Enterrel is kuldhetsz uzenetet.');
+    elements.sendGuardInfo.textContent = 'Küldés engedélyezve.';
+    updateSmartHint('Minden rendben. Enterrel is küldhetsz üzenetet.');
 }
 
 function getUsernameQueryParam() {
@@ -210,7 +236,98 @@ function getUsernameQueryParam() {
 
 function updatePrivateMembersVisibility() {
     const isPrivate = elements.privateRoomToggle.checked;
-    elements.privateMembersWrap.hidden = !isPrivate;
+    const isExistingPrivateRoom = Boolean(currentRoomAccess?.isPrivate);
+    elements.privateMembersWrap.hidden = !isPrivate || isExistingPrivateRoom;
+    updatePrivateRoomFlowState();
+}
+
+function setPrivateFlowState(stateClass, badgeText, helpText) {
+    if (!elements.privateFlowStateBadge || !elements.privateFlowStateText) {
+        return;
+    }
+
+    elements.privateFlowStateBadge.className = 'private-flow-badge';
+    if (stateClass) {
+        elements.privateFlowStateBadge.classList.add(stateClass);
+    }
+
+    elements.privateFlowStateBadge.textContent = badgeText;
+    elements.privateFlowStateText.textContent = helpText;
+}
+
+function updatePrivateRoomFlowState() {
+    const isPrivateToggleOn = elements.privateRoomToggle.checked;
+
+    if (currentRoomAccess?.isPrivate && currentRoomAccess?.isOwner) {
+        setPrivateFlowState(
+            'state-owner',
+            'Tulajdonosi mód',
+            'Ez a te privát szobád. 1) Másold ki vagy újítsd meg a meghívókódot. 2) Küldd el annak, akit meg szeretnél hívni. 3) A tulajdonosi eszközöknél tagokat is eltávolíthatsz.'
+        );
+        return;
+    }
+
+    if (currentRoomAccess?.isPrivate && !currentRoomAccess?.hasAccess) {
+        setPrivateFlowState(
+            'state-join',
+            'Kód szükséges',
+            'Ehhez a privát szobához meghívókód kell. Írd be a kapott kódot, majd kattints a Csatlakozás kóddal gombra.'
+        );
+        return;
+    }
+
+    if (currentRoomAccess?.isPrivate && currentRoomAccess?.hasAccess) {
+        setPrivateFlowState(
+            'state-member',
+            'Privát tag',
+            'Sikeresen bent vagy a privát szobában. Üzenetet már küldhetsz, a küldés automatikusan ehhez a szobához megy.'
+        );
+        return;
+    }
+
+    if (isPrivateToggleOn) {
+        setPrivateFlowState(
+            'state-owner',
+            'Létrehozás mód',
+            'Új privát szoba létrehozása: 1) Jelöld ki a Meghívott felhasználók listában, kit hívsz meg. 2) Kattints a Szoba létrehozása gombra. 3) A rendszer létrehozza a meghívókódot is.'
+        );
+        return;
+    }
+
+    setPrivateFlowState(
+        '',
+        'Nyilvános mód',
+        'Itt nyilvános szobát kezelsz. Ha meghívni szeretnél felhasználókat, kapcsold be a Privát szoba opciót, és megjelenik a Meghívott felhasználók terület.'
+    );
+}
+
+function initHelpTooltips() {
+    if (!window.bootstrap?.Tooltip) {
+        return;
+    }
+
+    for (const tooltip of helpTooltipInstances) {
+        tooltip.dispose();
+    }
+    helpTooltipInstances = [];
+
+    const tips = Array.from(document.querySelectorAll('.help-tip[data-help]'));
+    for (const tip of tips) {
+        const message = tip.getAttribute('data-help') || '';
+        tip.setAttribute('data-bs-toggle', 'tooltip');
+        tip.setAttribute('data-bs-placement', 'bottom');
+        tip.setAttribute('data-bs-custom-class', 'help-bootstrap-tooltip');
+        tip.setAttribute('data-bs-title', message);
+        tip.setAttribute('title', message);
+
+        const instance = new window.bootstrap.Tooltip(tip, {
+            container: 'body',
+            boundary: 'viewport',
+            trigger: 'hover focus'
+        });
+
+        helpTooltipInstances.push(instance);
+    }
 }
 
 function renderNetworkBackupPlan(planItems = []) {
@@ -269,8 +386,7 @@ async function refreshCurrentRoomAccess() {
     }
 
     updateActionGuards();
-
-    updateActionGuards();
+    updatePrivateMembersVisibility();
 }
 
 async function loadOwnerMembers() {
@@ -299,7 +415,7 @@ async function loadOwnerMembers() {
 async function joinPrivateRoomByCode() {
     const inviteCode = elements.privateInviteCodeInput.value.trim().toUpperCase();
     if (inviteCode.length < 4) {
-        showToast('Adj meg ervenyes meghivokodot.');
+        showToast('Adj meg érvényes meghívókódot.');
         return;
     }
 
@@ -312,7 +428,7 @@ async function joinPrivateRoomByCode() {
         })
     });
 
-    showToast('Sikeres csatlakozas a privat szobahoz.');
+    showToast('Sikeres csatlakozás a privát szobához.');
     elements.privateInviteCodeInput.value = '';
     await loadRooms(currentRoomId);
     await refreshCurrentRoomAccess();
@@ -323,7 +439,7 @@ async function joinPrivateRoomByCode() {
 async function removeSelectedRoomMembers() {
     const selected = Array.from(elements.ownerMembersSelect.selectedOptions || []).map((option) => option.value);
     if (!selected.length) {
-        showToast('Valassz legalabb 1 tagot a torleshez.');
+        showToast('Válassz legalább 1 tagot a törléshez.');
         return;
     }
 
@@ -336,7 +452,7 @@ async function removeSelectedRoomMembers() {
         );
     }
 
-    showToast('Kijelolt tagok torolve.');
+    showToast('Kijelölt tagok törölve.');
     await loadOwnerMembers();
 }
 
@@ -350,7 +466,7 @@ async function rotateInviteCode() {
     });
 
     elements.ownerInviteCode.value = payload.inviteCode || '';
-    showToast('Uj meghivokod generalva.');
+    showToast('Új meghívókód generálva.');
 }
 
 function renderPrivateMemberOptions(users = connectedUsersCache) {
@@ -392,8 +508,8 @@ function renderTypingIndicator() {
     }
 
     const names = Array.from(typingUsers).slice(0, 3);
-    const suffix = typingUsers.size > 3 ? ' es tovabbiak' : '';
-    elements.typingIndicator.textContent = `${names.join(', ')} gepel${typingUsers.size > 1 ? 'nek' : ''}${suffix}...`;
+    const suffix = typingUsers.size > 3 ? ' és továbbiak' : '';
+    elements.typingIndicator.textContent = `${names.join(', ')} gépel${typingUsers.size > 1 ? 'nek' : ''}${suffix}...`;
 }
 
 function emitTypingStop() {
@@ -440,16 +556,64 @@ function updateMessageCounter() {
     elements.messageCounter.textContent = `${value.length}/2000`;
 }
 
+function updateFooterClock() {
+    if (!elements.footerNow) {
+        return;
+    }
+
+    elements.footerNow.textContent = new Date().toLocaleTimeString('hu-HU', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function updateFooterLastSyncLabel() {
+    if (!elements.footerLastSync) {
+        return;
+    }
+
+    elements.footerLastSync.textContent = `Utolsó szinkron: ${new Date().toLocaleTimeString('hu-HU', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    })}`;
+}
+
+async function copyClientConnectUrl() {
+    const value = elements.clientConnectUrl?.textContent?.trim();
+    if (!value) {
+        showToast('Nincs másolható LAN URL.');
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(value);
+        showToast('Kliens URL másolva');
+    } catch (error) {
+        showToast('Másolás nem sikerült');
+    }
+}
+
+async function quickRefreshFooterData() {
+    await Promise.all([
+        loadHosts(),
+        loadStats(),
+        refreshCurrentRoomAccess(),
+        loadMessages()
+    ]);
+    updateFooterLastSyncLabel();
+}
+
 async function loadSecureLogStatus() {
     const payload = await fetchJson('/api/log/status');
     const secureLog = payload?.secureLog || {};
 
     if (secureLog.exists) {
-        elements.logStatusInfo.textContent = `Titkositott log: aktiv (queue: ${Number(secureLog.queuedEntries || 0)})`;
+        elements.logStatusInfo.textContent = `Titkosított log: aktív (queue: ${Number(secureLog.queuedEntries || 0)})`;
         return;
     }
 
-    elements.logStatusInfo.textContent = 'Titkositott log: file meg nem jott letre';
+    elements.logStatusInfo.textContent = 'Titkosított log: fájl még nem jött létre';
 }
 
 async function loadRecoveryStatus() {
@@ -457,16 +621,16 @@ async function loadRecoveryStatus() {
     const recovery = payload?.recovery || {};
 
     if (!recovery.attempted) {
-        elements.recoveryStatusInfo.textContent = 'Recovery: nem futott (letezo DB vagy meg nem indult)';
+        elements.recoveryStatusInfo.textContent = 'Helyreállítás: nem futott (létező DB vagy még nem indult)';
         return;
     }
 
     if (recovery.ok) {
-        elements.recoveryStatusInfo.textContent = `Recovery: sikeres (szobak: ${recovery.recoveredRooms || 0}, uzenetek: ${recovery.recoveredMessages || 0})`;
+        elements.recoveryStatusInfo.textContent = `Helyreállítás: sikeres (szobák: ${recovery.recoveredRooms || 0}, üzenetek: ${recovery.recoveredMessages || 0})`;
         return;
     }
 
-    elements.recoveryStatusInfo.textContent = `Recovery: sikertelen (${recovery.reason || 'ismeretlen'})`;
+    elements.recoveryStatusInfo.textContent = `Helyreállítás: sikertelen (${recovery.reason || 'ismeretlen'})`;
 }
 
 function setComposeMode(mode) {
@@ -484,13 +648,13 @@ function setComposeMode(mode) {
     elements.imageComposer.hidden = mode !== 'image';
 
     if (mode === 'code') {
-        elements.messageInput.placeholder = 'Illessz be kodreszletet...';
+        elements.messageInput.placeholder = 'Illessz be kódrészletet...';
     } else if (mode === 'emoji') {
-        elements.messageInput.placeholder = 'Emoji vagy rovid reakcio...';
+        elements.messageInput.placeholder = 'Emoji vagy rövid reakció...';
     } else if (mode === 'image') {
-        elements.messageInput.placeholder = 'Kep leiras (opcionalis)...';
+        elements.messageInput.placeholder = 'Kép leírása (opcionális)...';
     } else {
-        elements.messageInput.placeholder = 'Ird be az uzeneted...';
+        elements.messageInput.placeholder = 'Írd be az üzeneted...';
     }
 }
 
@@ -517,7 +681,7 @@ function buildMessageBody(message) {
 
     if (type === 'image') {
         const safePath = escapeHtml(message.file_path || '');
-        const safeName = escapeHtml(message.original_name || 'kep');
+        const safeName = escapeHtml(message.original_name || 'kép');
         const caption = safeContent ? `<div class="mt-2">${safeContent}</div>` : '';
         return `<div class="image-wrap"><img src="${safePath}" alt="${safeName}" loading="lazy" /></div>${caption}`;
     }
@@ -529,23 +693,47 @@ function buildMessageActions(message) {
     const type = (message.message_type || 'text').toLowerCase();
 
     if (type === 'image') {
-        return `<div class="message-actions"><button class="copy-btn" data-copy-url="${escapeHtml(message.file_path || '')}">URL masolasa</button></div>`;
+        return `<div class="message-actions"><button class="copy-btn" data-copy-url="${escapeHtml(message.file_path || '')}">URL másolása</button></div>`;
     }
 
-    return `<div class="message-actions"><button class="copy-btn" data-copy-text="${escapeHtml(message.content || '')}">Masolas</button></div>`;
+    return `<div class="message-actions"><button class="copy-btn" data-copy-text="${escapeHtml(message.content || '')}">Másolás</button></div>`;
 }
 
 function stateBadge(status) {
     const safeStatus = ['online', 'offline', 'unknown'].includes(status) ? status : 'unknown';
-    return `<span class="badge-state state-${safeStatus}">${safeStatus}</span>`;
+    return `<button class="badge-state state-${safeStatus}" type="button" data-host-status="${safeStatus}">${safeStatus}</button>`;
 }
 
-function renderHosts(hosts) {
-    if (!hosts.length) {
-        elements.hostsList.innerHTML = '<li>Nincs host adat.</li>';
+function normalizeHostStatus(value) {
+    if (['online', 'offline', 'unknown'].includes(value)) {
+        return value;
+    }
+
+    return 'unknown';
+}
+
+function setHostFilter(filter) {
+    const normalized = ['all', 'online', 'offline', 'unknown'].includes(filter) ? filter : 'all';
+    hostFilterState = normalized;
+
+    const filterButtons = Array.from(elements.hostFilterControls?.querySelectorAll('.host-filter-chip') || []);
+    for (const button of filterButtons) {
+        button.classList.toggle('active', button.dataset.filter === hostFilterState);
+    }
+
+    renderHosts(hostsCache);
+}
+
+function renderHosts(hosts = hostsCache) {
+    hostsCache = Array.isArray(hosts) ? hosts : [];
+
+    if (!hostsCache.length) {
+        elements.hostsList.innerHTML = '<li>Nincs hostadat.</li>';
+        elements.allCount.textContent = '0';
         elements.onlineCount.textContent = '0';
         elements.offlineCount.textContent = '0';
         elements.unknownCount.textContent = '0';
+        elements.hostFilterHint.textContent = 'Mutatott hostok: 0 / 0';
         return;
     }
 
@@ -555,17 +743,31 @@ function renderHosts(hosts) {
         unknown: 0
     };
 
-    for (const host of hosts) {
-        if (stats[host.status] !== undefined) {
-            stats[host.status] += 1;
+    for (const host of hostsCache) {
+        const status = normalizeHostStatus(host?.status);
+        if (stats[status] !== undefined) {
+            stats[status] += 1;
         }
     }
 
+    elements.allCount.textContent = String(hostsCache.length);
     elements.onlineCount.textContent = String(stats.online);
     elements.offlineCount.textContent = String(stats.offline);
     elements.unknownCount.textContent = String(stats.unknown);
 
-    elements.hostsList.innerHTML = hosts
+    const filteredHosts =
+        hostFilterState === 'all'
+            ? hostsCache
+            : hostsCache.filter((host) => normalizeHostStatus(host?.status) === hostFilterState);
+
+    elements.hostFilterHint.textContent = `Mutatott hostok: ${filteredHosts.length} / ${hostsCache.length}`;
+
+    if (!filteredHosts.length) {
+        elements.hostsList.innerHTML = '<li>Nincs host ebben a szűrőben.</li>';
+        return;
+    }
+
+    elements.hostsList.innerHTML = filteredHosts
         .map(
             (host) =>
                 `<li><span>${escapeHtml(host.ip)} ${
@@ -580,7 +782,7 @@ function renderUsers(users) {
     renderPrivateMemberOptions(connectedUsersCache);
 
     if (!users.length) {
-        elements.usersList.innerHTML = '<li>Nincs aktiv chat kapcsolat.</li>';
+        elements.usersList.innerHTML = '<li>Nincs aktív chatkapcsolat.</li>';
         return;
     }
 
@@ -598,7 +800,7 @@ function renderUsers(users) {
 
 function renderMessages(messages) {
     if (!messages.length) {
-        elements.messages.innerHTML = '<p class="mb-0">Meg nincs uzenet ebben a szobaban.</p>';
+        elements.messages.innerHTML = '<p class="mb-0">Még nincs üzenet ebben a szobában.</p>';
         return;
     }
 
@@ -644,7 +846,7 @@ async function loadConfig() {
         ? runtimeConfig.connectUrls.join(' | ')
         : 'n/a';
 
-    elements.networkInfo.textContent = `LAN-only: ${runtimeConfig.lanOnly ? 'igen' : 'nem'} | Csatlakozas: ${connectInfo}`;
+    elements.networkInfo.textContent = `LAN-only: ${runtimeConfig.lanOnly ? 'igen' : 'nem'} | Csatlakozás: ${connectInfo}`;
     updateClientConnectInfo(runtimeConfig.connectUrls || []);
 }
 
@@ -656,7 +858,7 @@ async function loadDiagnostics() {
     }
 
     const iface = diagnostics.preferredInterface;
-    elements.networkInfo.textContent = `Interface: ${iface.name} (${iface.address}) | Csatlakozas: ${diagnostics.connectUrls.join(' | ')}`;
+    elements.networkInfo.textContent = `Interfész: ${iface.name} (${iface.address}) | Csatlakozás: ${diagnostics.connectUrls.join(' | ')}`;
 }
 
 async function loadRooms(preferredRoomId = null) {
@@ -664,7 +866,7 @@ async function loadRooms(preferredRoomId = null) {
     const rooms = await fetchJson(`/api/rooms${usernameQuery ? `?${usernameQuery}` : ''}`);
     elements.roomSelect.innerHTML = rooms
         .map((room) => {
-            const lock = Number(room.is_private) === 1 ? ' [privat]' : '';
+            const lock = Number(room.is_private) === 1 ? ' [privát]' : '';
             return `<option value="${room.id}">${escapeHtml(room.name)}${lock}</option>`;
         })
         .join('');
@@ -683,7 +885,7 @@ async function loadRooms(preferredRoomId = null) {
 
 async function loadMessages() {
     if (currentRoomAccess?.isPrivate && !currentRoomAccess?.hasAccess) {
-        elements.messages.innerHTML = '<p class="mb-0">Privat szoba. Add meg a meghivokodot a belepeshez.</p>';
+        elements.messages.innerHTML = '<p class="mb-0">Privát szoba. Add meg a meghívókódot a belépéshez.</p>';
         return;
     }
 
@@ -711,12 +913,12 @@ async function uploadImageMessage() {
     const image = elements.imageInput.files?.[0];
 
     if (!image) {
-        showToast('Valassz kepet a feltolteshez');
+        showToast('Válassz képet a feltöltéshez');
         return;
     }
 
     if (image.size > MAX_IMAGE_SIZE_BYTES) {
-        showToast('A kep túl nagy (max 3 MB)');
+        showToast('A kép túl nagy (max. 3 MB)');
         return;
     }
 
@@ -737,14 +939,14 @@ async function uploadImageMessage() {
 
     elements.imageInput.value = '';
     elements.messageInput.value = '';
-    showToast('Kep elkuldve');
+    showToast('Kép elküldve');
 }
 
 async function searchMessages() {
     const query = elements.searchInput.value.trim();
 
     if (query.length < 2) {
-        showToast('A kereses legalabb 2 karakter legyen');
+        showToast('A keresés legalább 2 karakter legyen');
         return;
     }
 
@@ -754,7 +956,7 @@ async function searchMessages() {
         `/api/rooms/${currentRoomId}/messages/search?q=${encodeURIComponent(query)}&limit=120${userSuffix}`
     );
     renderMessages(messages);
-    showToast(`Keresesi talalatok: ${messages.length}`);
+    showToast(`Keresési találatok: ${messages.length}`);
 }
 
 function passClientSpamCheck(rawContent) {
@@ -762,7 +964,7 @@ function passClientSpamCheck(rawContent) {
 
     if (clientSpamState.blockedUntil > now) {
         const seconds = Math.ceil((clientSpamState.blockedUntil - now) / 1000);
-        showToast(`Tul gyors kuldes. Probald ujra ${seconds} mp mulva.`);
+        showToast(`Túl gyors küldés. Próbáld újra ${seconds} mp múlva.`);
         return false;
     }
 
@@ -783,7 +985,7 @@ function passClientSpamCheck(rawContent) {
     if (clientSpamState.repeatedCount >= 3) {
         clientSpamState.blockedUntil = now + CLIENT_SPAM_BLOCK_MS;
         clientSpamState.repeatedCount = 0;
-        showToast('Spam vedelem: ideiglenesen blokkolva lett a kuldes.');
+        showToast('Spamvédelem: ideiglenesen blokkolva lett a küldés.');
         return false;
     }
 
@@ -809,7 +1011,7 @@ function startHealthMonitoring() {
                 setBadgeState(elements.serverStatus, `Szerver: lassabb (${latency}ms)`, 'warn');
             }
         } catch (error) {
-            setBadgeState(elements.serverStatus, 'Szerver: nem elerheto', 'bad');
+            setBadgeState(elements.serverStatus, 'Szerver: nem elérhető', 'bad');
         }
     }, 15000);
 }
@@ -818,13 +1020,13 @@ function joinCurrentRoom() {
     const username = elements.usernameInput.value.trim();
 
     if (username.length < 2) {
-        showToast('Adj meg legalabb 2 karakteres felhasznalonevet.');
+        showToast('Adj meg legalább 2 karakteres felhasználónevet.');
         updateActionGuards();
         return false;
     }
 
     if (currentRoomAccess?.isPrivate && !currentRoomAccess?.hasAccess) {
-        showToast('Ehhez a privat szobahoz meghivokod szukseges.');
+        showToast('Ehhez a privát szobához meghívókód szükséges.');
         updateActionGuards();
         return false;
     }
@@ -855,7 +1057,7 @@ function setupSocket() {
     socket.on('disconnect', () => {
         isSocketConnected = false;
         setBadgeState(elements.serverStatus, 'Szerver: kapcsolat megszakadt', 'bad');
-        updateSmartHint('A kapcsolat megszakadt, varj az ujracsatlakozasra.');
+        updateSmartHint('A kapcsolat megszakadt, várj az újracsatlakozásra.');
         updateActionGuards();
     });
 
@@ -920,6 +1122,65 @@ function setupSocket() {
 
         showToast(message);
     });
+
+    // ===== ARCADE GAME SOCKET HANDLERS =====
+    socket.on('arcade:stateUpdate', (state) => {
+        if (!state || !currentGameMode) return;
+
+        const incomingMode = String(state.gameType || '').toLowerCase();
+        if (incomingMode && incomingMode !== String(currentGameMode).toLowerCase()) {
+            return;
+        }
+
+        // Update global game state from server
+        gameState.currentGame = state.gameType;
+        gameState.currentTick = state.currentTick || 0;
+        gameState.isRunning = state.isRunning !== false;
+        gameState.players = state.players || [];
+        gameState.entities = state.entities || [];
+
+        // Update game view header
+        const gameViewTitle = document.getElementById('gameViewTitle');
+        const gameViewPlayers = document.getElementById('gameViewPlayers');
+        if (gameViewTitle) gameViewTitle.textContent = `🎮 ${state.gameType || 'Játék'} - Tick ${state.currentTick || 0}`;
+        if (gameViewPlayers) gameViewPlayers.textContent = `Játékosok: ${state.players?.length || 0}`;
+
+        // Start render loop if not already running
+        if (!gameRenderLoopId) {
+            startArcadeGameRenderLoop();
+        }
+    });
+
+    socket.on('arcade:gameStarted', (data) => {
+        const incomingMode = String(data?.gameType || '').toLowerCase();
+        if (!currentGameMode || (incomingMode && incomingMode !== String(currentGameMode).toLowerCase())) {
+            return;
+        }
+
+        gameState.isRunning = true;
+        showToast(`🎮 Játék indult: ${data.gameType || 'Arcade'}`);
+        startArcadeGameRenderLoop();
+    });
+
+    socket.on('arcade:gameEnded', (data) => {
+        const finalScore = data.finalScore || 0;
+        showToast(`Játék vége. Végső pontszám: ${finalScore}`);
+        stopArcadeGame();
+        switchGameView('chat');
+    });
+
+    socket.on('arcade:gameStopped', () => {
+        showToast('Játék leállt. Vissza a chatnézetre.');
+        stopArcadeGame();
+        switchGameView('chat');
+    });
+
+    socket.on('arcade:error', (data) => {
+        const message = data?.message || 'Ismeretlen arcade hiba';
+        showToast(`🎮 Hiba: ${message}`);
+        stopArcadeGame();
+        switchGameView('chat');
+    });
 }
 
 async function createRoom() {
@@ -935,7 +1196,7 @@ async function createRoom() {
     );
 
     if (isPrivate && selectedMembers.length < 1) {
-        showToast('Privat szobahoz valassz ki legalabb 1 usert.');
+        showToast('Privát szobához válassz ki legalább 1 felhasználót.');
         return;
     }
 
@@ -960,9 +1221,9 @@ async function createRoom() {
     await loadStats();
 
     if (isPrivate && room.inviteCode) {
-        showToast(`Privat szoba letrehozva. Meghivokod: ${room.inviteCode}`);
+        showToast(`Privát szoba létrehozva. Meghívókód: ${room.inviteCode} (a tulajdonosi eszközöknél is eléred)`);
     } else {
-        showToast('Szoba letrehozva');
+        showToast('Szoba létrehozva');
     }
 
     updateActionGuards();
@@ -1037,7 +1298,7 @@ function bindEvents() {
 
         if (favoriteId === Number(currentRoomId)) {
             localStorage.removeItem('localchat_favorite_room');
-            showToast('Kedvenc szoba torolve');
+            showToast('Kedvenc szoba törölve');
         } else {
             localStorage.setItem('localchat_favorite_room', String(currentRoomId));
             showToast('Kedvenc szoba mentve');
@@ -1047,11 +1308,26 @@ function bindEvents() {
     });
 
     elements.copyConnectUrlBtn.addEventListener('click', async () => {
+        await copyClientConnectUrl();
+    });
+
+    elements.footerCopyUrlBtn?.addEventListener('click', async () => {
+        await copyClientConnectUrl();
+    });
+
+    elements.footerJumpLatestBtn?.addEventListener('click', () => {
+        if (elements.messages) {
+            elements.messages.scrollTop = elements.messages.scrollHeight;
+            showToast('Átugrott az utolsó üzenethez.');
+        }
+    });
+
+    elements.footerQuickRefreshBtn?.addEventListener('click', async () => {
         try {
-            await navigator.clipboard.writeText(elements.clientConnectUrl.textContent.trim());
-            showToast('Kliens URL masolva');
+            await quickRefreshFooterData();
+            showToast('Gyors frissítés kész.');
         } catch (error) {
-            showToast('Masolas nem sikerult');
+            showToast(error.message || 'Gyors frissítés sikertelen.');
         }
     });
 
@@ -1065,7 +1341,7 @@ function bindEvents() {
                 .then(() => refreshCurrentRoomAccess())
                 .then(() => loadMessages())
                 .catch(() => {
-                    showToast('A szobalista frissitese nem sikerult.');
+                    showToast('A szobalista frissítése nem sikerült.');
                 });
         }
 
@@ -1083,9 +1359,9 @@ function bindEvents() {
             joinCurrentRoom();
             await loadMessages();
             setFavoriteRoomButtonState();
-            showToast(`Szoba valtas: ${elements.roomSelect.options[elements.roomSelect.selectedIndex]?.text || 'ismeretlen'}`);
+            showToast(`Szobaváltás: ${elements.roomSelect.options[elements.roomSelect.selectedIndex]?.text || 'ismeretlen'}`);
         } catch (error) {
-            showToast(error.message || 'Szoba valtas sikertelen.');
+            showToast(error.message || 'Szobaváltás sikertelen.');
             await loadRooms();
             await loadMessages();
         }
@@ -1104,7 +1380,7 @@ function bindEvents() {
     elements.clearSearchBtn.addEventListener('click', async () => {
         elements.searchInput.value = '';
         await loadMessages();
-        showToast('Keresesi szuro torolve');
+        showToast('Keresési szűrő törölve');
     });
 
     elements.messages.addEventListener('click', async (event) => {
@@ -1120,9 +1396,9 @@ function bindEvents() {
 
         try {
             await navigator.clipboard.writeText(text);
-            showToast('Uzenet tartalom masolva');
+            showToast('Üzenettartalom másolva');
         } catch (error) {
-            showToast('Masolas nem sikerult');
+            showToast('Másolás nem sikerült');
         }
     });
 
@@ -1168,17 +1444,45 @@ function bindEvents() {
     });
 
     elements.rescanBtn.addEventListener('click', async () => {
-        setBadgeState(elements.discoveryStatus, 'Discovery: rescan...', 'warn');
+        setBadgeState(elements.discoveryStatus, 'Discovery: újraszkennelés...', 'warn');
 
         try {
             const hosts = await fetchJson('/api/hosts/rescan', { method: 'POST' });
             renderHosts(hosts);
             setBadgeState(elements.discoveryStatus, 'Discovery fut', 'ok');
-            showToast('Rescan kesz');
+            showToast('Újraszkennelés kész');
         } catch (error) {
             setBadgeState(elements.discoveryStatus, 'Discovery hiba', 'bad');
             alert(error.message);
         }
+    });
+
+    elements.hostFilterControls?.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+
+        const button = target.closest('.host-filter-chip');
+        if (!button) {
+            return;
+        }
+
+        setHostFilter(button.dataset.filter || 'all');
+    });
+
+    elements.hostsList?.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+
+        const statusButton = target.closest('.badge-state');
+        if (!statusButton) {
+            return;
+        }
+
+        setHostFilter(statusButton.dataset.hostStatus || 'all');
     });
 
     elements.privateRoomToggle.addEventListener('change', () => {
@@ -1190,7 +1494,7 @@ function bindEvents() {
         try {
             await joinPrivateRoomByCode();
         } catch (error) {
-            showToast(error.message || 'Privat csatlakozas sikertelen.');
+            showToast(error.message || 'Privát csatlakozás sikertelen.');
         }
     });
 
@@ -1198,7 +1502,7 @@ function bindEvents() {
         try {
             await removeSelectedRoomMembers();
         } catch (error) {
-            showToast(error.message || 'Tag torles sikertelen.');
+            showToast(error.message || 'Tagtörlés sikertelen.');
         }
     });
 
@@ -1206,27 +1510,118 @@ function bindEvents() {
         try {
             await rotateInviteCode();
         } catch (error) {
-            showToast(error.message || 'Meghivokod forgatas sikertelen.');
+            showToast(error.message || 'Meghívókód-forgatás sikertelen.');
         }
     });
 
     elements.copyOwnerInviteBtn.addEventListener('click', async () => {
         try {
             await navigator.clipboard.writeText(elements.ownerInviteCode.value || '');
-            showToast('Meghivokod masolva.');
+            showToast('Meghívókód másolva.');
         } catch (error) {
-            showToast('Masolas nem sikerult.');
+            showToast('Másolás nem sikerült.');
         }
     });
 
     elements.quickLanTestBtn.addEventListener('click', async () => {
         try {
             await runQuickLanTest();
-            showToast('LAN gyorsteszt frissitve.');
+            showToast('LAN gyorsteszt frissítve.');
         } catch (error) {
             showToast('LAN gyorsteszt sikertelen.');
         }
     });
+
+    // ===== ARCADE GAME EVENTS =====
+
+function showModalById(modalId) {
+    const modalEl = document.getElementById(modalId);
+    if (!modalEl) {
+        return;
+    }
+
+    const modalApi = window.bootstrap?.Modal;
+    if (modalApi?.getOrCreateInstance) {
+        modalApi.getOrCreateInstance(modalEl).show();
+        return;
+    }
+
+    if (typeof window.jQuery === 'function') {
+        window.jQuery(modalEl).modal('show');
+    }
+}
+
+function hideModalById(modalId) {
+    const modalEl = document.getElementById(modalId);
+    if (!modalEl) {
+        return;
+    }
+
+    const modalApi = window.bootstrap?.Modal;
+    if (modalApi?.getInstance) {
+        modalApi.getInstance(modalEl)?.hide();
+        return;
+    }
+
+    if (typeof window.jQuery === 'function') {
+        window.jQuery(modalEl).modal('hide');
+    }
+}
+    const startArcadeGameBtn = document.getElementById('startArcadeGameBtn');
+    if (startArcadeGameBtn) {
+        startArcadeGameBtn.addEventListener('click', () => {
+            showModalById('arcadeGameSelectorModal');
+        });
+    }
+
+    // Game card selection
+    document.querySelectorAll('.arcade-game-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const gameMode = card.dataset.gameMode;
+            if (gameMode && socket && socket.connected) {
+                startArcadeGame(gameMode, socket, currentRoomId, getCurrentUsername());
+                hideModalById('arcadeGameSelectorModal');
+            } else {
+                showToast('A socket nincs csatlakoztatva vagy érvénytelen játékmód.');
+            }
+        });
+    });
+
+    // Tab switching (Chat <-> Game)
+    const chatStageTabs = document.querySelectorAll('.chat-stage-tab');
+    chatStageTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const view = tab.dataset.view;
+            if (view) switchGameView(view);
+        });
+    });
+
+    // Leave game button
+    const leaveArcadeGameBtn = document.getElementById('leaveArcadeGameBtn');
+    if (leaveArcadeGameBtn) {
+        leaveArcadeGameBtn.addEventListener('click', () => {
+            leaveArcadeGame(socket);
+        });
+    }
+
+    // Keyboard input for arcade games (delegated to document)
+    document.addEventListener('keydown', handleArcadeKeyDown);
+    document.addEventListener('keyup', handleArcadeKeyUp);
+
+    // Touch input for arcade games (on canvas)
+    const arcadeGameCanvas = document.getElementById('arcadeGameCanvas');
+    if (arcadeGameCanvas) {
+        arcadeGameCanvas.addEventListener('touchstart', handleArcadeTouchStart, false);
+        arcadeGameCanvas.addEventListener('touchmove', handleArcadeTouchMove, false);
+        arcadeGameCanvas.addEventListener('touchend', (e) => handleArcadeTouchEnd(e, socket), false);
+    }
+
+    // Input polling loop: Send input to server ~60Hz
+    setInterval(() => {
+        if (currentGameMode && socket && socket.connected) {
+            sendArcadeInput(socket);
+        }
+    }, 16.67);
 }
 
 async function bootstrap() {
@@ -1249,17 +1644,25 @@ async function bootstrap() {
         await loadSecureLogStatus();
         await loadRecoveryStatus();
     } catch (error) {
-        setBadgeState(elements.serverStatus, 'Inicializalasi hiba', 'bad');
+        setBadgeState(elements.serverStatus, 'Inicializálási hiba', 'bad');
         console.error(error);
     }
 
     setupSocket();
     bindEvents();
+    initHelpTooltips();
     setComposeMode('text');
+    setHostFilter('all');
     loadDraft();
     updatePrivateMembersVisibility();
     updateMessageCounter();
     updateActionGuards();
+    updateFooterClock();
+    updateFooterLastSyncLabel();
+
+    setInterval(() => {
+        updateFooterClock();
+    }, 30000);
 
     setInterval(() => {
         loadSecureLogStatus().catch(() => {});

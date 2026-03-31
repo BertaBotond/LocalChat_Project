@@ -23,12 +23,14 @@ const {
     clampMessageContentByType,
     isSafeRoomId
 } = require('./security/validation.js');
+const { AgarRoom, SlitherRoom, RacingRoom, FlappyRoom } = require('./games/arcade-rooms.js');
 
 //!Beállítások
 const app = express();
 const router = express.Router();
 const runtimeConfig = getRuntimeConfig();
 const connectedUsers = new Map();
+const activeArcadeRooms = new Map();
 let io;
 let discoveryService;
 let snapshotTimer;
@@ -432,7 +434,280 @@ function setupSocketServer(httpServer) {
                 .catch(() => {});
         });
 
+        // ============================================================================
+        // ARCADE GAME EVENT HANDLERS
+        // ============================================================================
+
+        const detachArcadePlayer = ({ notifyRoom = true } = {}) => {
+            const gameRoomKey = socket.data.arcadeGameKey;
+            const playerId = socket.data.arcadePlayerId;
+
+            if (!gameRoomKey || !playerId) {
+                return;
+            }
+
+            const gameRoom = activeArcadeRooms.get(gameRoomKey);
+
+            socket.data.arcadeGameKey = null;
+            socket.data.arcadePlayerId = null;
+
+            if (!gameRoom) {
+                return;
+            }
+
+            gameRoom.removePlayer(playerId);
+
+            const roomIdMatch = /^arcade:(\d+):/.exec(gameRoomKey);
+            const roomId = roomIdMatch ? Number(roomIdMatch[1]) : null;
+
+            if (gameRoom.getPlayerCount() <= 0) {
+                gameRoom.stop();
+                activeArcadeRooms.delete(gameRoomKey);
+                return;
+            }
+
+            if (notifyRoom && Number.isFinite(roomId)) {
+                io.to(`room:${roomId}`).emit('arcade:stateUpdate', gameRoom.getState());
+            }
+        };
+
+        socket.on('arcade:startGame', async (payload) => {
+            if (!allowSocketMessage()) return;
+
+            const roomId = Number(payload?.roomId);
+            const gameMode = String(payload?.gameMode || 'agar').toLowerCase();
+            const username = normalizeString(socket.data.username);
+
+            if (!isSafeRoomId(roomId) || !isValidUsername(username)) {
+                socket.emit('systemNotice', {
+                    level: 'error',
+                    message: 'Invalid roomId or username.'
+                });
+                return;
+            }
+
+            try {
+                const room = await database.getRoomByIdForUser(roomId, normalizeIdentity(username));
+                if (!room) {
+                    socket.emit('systemNotice', {
+                        level: 'error',
+                        message: 'Nincs jogosultsagod ehhez a szobahoz.'
+                    });
+                    return;
+                }
+
+                const gameRoomKey = `arcade:${roomId}:${gameMode}`;
+
+                // Check if game already exists
+                if (activeArcadeRooms.has(gameRoomKey)) {
+                    socket.emit('systemNotice', {
+                        level: 'warn',
+                        message: 'Jatek mar folyamatban van ebben a szoban.'
+                    });
+                    return;
+                }
+
+                // Create new game instance
+                let gameRoom;
+                if (gameMode === 'agar') {
+                    gameRoom = new AgarRoom(gameRoomKey, {
+                        gameAreaWidth: 10000,
+                        gameAreaHeight: 10000,
+                        maxPlayers: 20
+                    });
+                } else if (gameMode === 'slither') {
+                    gameRoom = new SlitherRoom(gameRoomKey, {
+                        gameAreaWidth: 10000,
+                        gameAreaHeight: 10000,
+                        maxPlayers: 20
+                    });
+                } else if (gameMode === 'racing') {
+                    gameRoom = new RacingRoom(gameRoomKey, {
+                        gameAreaWidth: 10000,
+                        gameAreaHeight: 10000,
+                        maxPlayers: 20
+                    });
+                } else if (gameMode === 'flappy') {
+                    gameRoom = new FlappyRoom(gameRoomKey, {
+                        gameAreaWidth: 10000,
+                        gameAreaHeight: 8000,
+                        maxPlayers: 20
+                    });
+                } else {
+                    socket.emit('systemNotice', {
+                        level: 'error',
+                        message: `Ismeretlen jatek mod: ${gameMode}`
+                    });
+                    return;
+                }
+
+                // Store game reference
+                activeArcadeRooms.set(gameRoomKey, gameRoom);
+
+                // Setup event listeners for broadcasting
+                gameRoom.on('playerJoined', (data) => {
+                    io.to(`room:${roomId}`).emit('arcade:playerJoined', data);
+                });
+
+                gameRoom.on('playerLeft', (data) => {
+                    io.to(`room:${roomId}`).emit('arcade:playerLeft', data);
+                });
+
+                gameRoom.on('entitySpawned', (data) => {
+                    // Only broadcast significant events, not every food spawn
+                    if (data.entity.isPlayer) {
+                        io.to(`room:${roomId}`).emit('arcade:entitySpawned', data);
+                    }
+                });
+
+                gameRoom.on('entityDespawned', (data) => {
+                    if (data.playerId) {
+                        io.to(`room:${roomId}`).emit('arcade:entityDespawned', data);
+                    }
+                });
+
+                gameRoom.on('stopped', () => {
+                    activeArcadeRooms.delete(gameRoomKey);
+                    io.to(`room:${roomId}`).emit('arcade:gameStopped', {
+                        gameRoomKey,
+                        finalState: gameRoom.getState()
+                    });
+                });
+
+                // Send initial state
+                const initialState = gameRoom.getState();
+                io.to(`room:${roomId}`).emit('arcade:gameStarted', initialState);
+
+                // Broadcast state updates every frame (or sample rate)
+                const broadcastInterval = setInterval(() => {
+                    if (!gameRoom.isGameRunning()) {
+                        clearInterval(broadcastInterval);
+                        return;
+                    }
+                    io.to(`room:${roomId}`).emit('arcade:stateUpdate', gameRoom.getState());
+                }, 1000 / 60); // 60Hz
+
+                // Start game loop
+                gameRoom.start();
+
+                logEvent('arcade-game-created', {
+                    gameRoomKey,
+                    roomId,
+                    gameMode,
+                    creator: username
+                });
+            } catch (error) {
+                console.error('Arcade game start error:', error);
+                socket.emit('systemNotice', {
+                    level: 'error',
+                    message: 'Jatek inditas sikertelen.'
+                });
+            }
+        });
+
+        socket.on('arcade:join', async (payload) => {
+            if (!allowSocketMessage()) return;
+
+            const roomId = Number(payload?.roomId);
+            const gameMode = String(payload?.gameMode || 'agar').toLowerCase();
+            const username = normalizeString(socket.data.username || payload?.username);
+
+            if (!isSafeRoomId(roomId) || !isValidUsername(username)) {
+                socket.emit('systemNotice', {
+                    level: 'error',
+                    message: 'Invalid roomId or username.'
+                });
+                return;
+            }
+
+            try {
+                const room = await database.getRoomByIdForUser(roomId, normalizeIdentity(username));
+                if (!room) {
+                    socket.emit('systemNotice', {
+                        level: 'error',
+                        message: 'Nincs jogosultsagod ehhez a szobahoz.'
+                    });
+                    return;
+                }
+
+                const gameRoomKey = `arcade:${roomId}:${gameMode}`;
+                const gameRoom = activeArcadeRooms.get(gameRoomKey);
+
+                if (!gameRoom) {
+                    socket.emit('systemNotice', {
+                        level: 'warn',
+                        message: 'Nincsen aktiv jatek ebben a szoban.'
+                    });
+                    return;
+                }
+
+                // Add player to game
+                const playerId = `${username}_${socket.id}`;
+                const added = gameRoom.addPlayer(playerId, username);
+
+                if (!added) {
+                    socket.emit('systemNotice', {
+                        level: 'warn',
+                        message: 'A jatek mar megtelt vagy mar csatlakozttal.'
+                    });
+                    return;
+                }
+
+                // Store game reference for this socket
+                socket.data.arcadeGameKey = gameRoomKey;
+                socket.data.arcadePlayerId = playerId;
+
+                io.to(`room:${roomId}`).emit('arcade:stateUpdate', gameRoom.getState());
+
+                logEvent('arcade-player-joined', {
+                    gameRoomKey,
+                    playerId,
+                    username
+                });
+            } catch (error) {
+                console.error('Arcade join error:', error);
+                socket.emit('systemNotice', {
+                    level: 'error',
+                    message: 'Catlakozas sikertelen.'
+                });
+            }
+        });
+
+        socket.on('arcade:input', (payload) => {
+            if (!allowSocketMessage()) return;
+
+            const gameRoomKey = socket.data.arcadeGameKey;
+            const playerId = socket.data.arcadePlayerId;
+
+            if (!gameRoomKey || !playerId) {
+                return; // Player not in active game
+            }
+
+            const gameRoom = activeArcadeRooms.get(gameRoomKey);
+            if (!gameRoom || !gameRoom.isGameRunning()) {
+                return;
+            }
+
+            const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+            const inputFrame = {
+                tick: gameRoom.getCurrentTick(),
+                moveX: clamp(Number(payload?.moveX) || 0, -1, 1),
+                moveY: clamp(Number(payload?.moveY) || 0, -1, 1),
+                action: Number(payload?.action) || 0,
+                timestamp: Date.now()
+            };
+
+            gameRoom.queueInput(playerId, inputFrame);
+        });
+
+        socket.on('arcade:leave', () => {
+            detachArcadePlayer({ notifyRoom: true });
+        });
+
         socket.on('disconnect', async () => {
+            detachArcadePlayer({ notifyRoom: true });
+
             if (socket.data.roomId && socket.data.username) {
                 socket.to(`room:${socket.data.roomId}`).emit('typingUpdate', {
                     roomId: socket.data.roomId,

@@ -14,7 +14,7 @@
                 <div>
                     <p class="eyebrow mb-1">Localchat Secure Ops</p>
                     <h1 class="mb-1">Admin Diagnostics</h1>
-                    <p class="mb-0">Titkositott log, recovery, startup smoke es halozati allapot egy helyen.</p>
+                    <p class="mb-0">Titkosított log, helyreállítás, startup smoke és hálózati állapot egy helyen.</p>
                 </div>
                 <div class="header-actions">
                     <a class="btn btn-outline-light btn-sm" href="/">Vissza a chatre</a>
@@ -28,25 +28,25 @@
                         <input id="adminTokenInput" class="form-control" type="password" placeholder="ADMIN_TOKEN" autocomplete="off" />
                     </div>
                     <div class="col-6 col-md-2 d-grid">
-                        <button id="loadDiagnosticsBtn" class="btn btn-accent">Frissites</button>
+                        <button id="loadDiagnosticsBtn" class="btn btn-accent">Frissítés</button>
                     </div>
                     <div class="col-6 col-md-2 d-grid">
                         <button id="runSmokeBtn" class="btn btn-outline-light">Smoke futtat</button>
                     </div>
                 </div>
-                <p id="adminStatus" class="mb-0 mt-2 small">Status: varakozas.</p>
+                <p id="adminStatus" class="mb-0 mt-2 small">Státusz: várakozás.</p>
             </section>
 
             <div class="row g-3">
                 <div class="col-12 col-lg-6">
                     <section class="panel p-3 h-100">
-                        <h2 class="h5 mb-2">Titkositott Log</h2>
+                        <h2 class="h5 mb-2">Titkosított log</h2>
                         <ul id="secureLogList" class="kv-list"></ul>
                     </section>
                 </div>
                 <div class="col-12 col-lg-6">
                     <section class="panel p-3 h-100">
-                        <h2 class="h5 mb-2">Recovery Status</h2>
+                        <h2 class="h5 mb-2">Helyreállítás állapota</h2>
                         <ul id="recoveryList" class="kv-list"></ul>
                     </section>
                 </div>
@@ -59,7 +59,7 @@
                 </div>
                 <div class="col-12 col-lg-6">
                     <section class="panel p-3 h-100">
-                        <h2 class="h5 mb-2">Runtime es Halozat</h2>
+                        <h2 class="h5 mb-2">Runtime és hálózat</h2>
                         <ul id="runtimeList" class="kv-list"></ul>
                         <div class="mt-2">
                             <h3 class="h6">Connect URL-ek</h3>
