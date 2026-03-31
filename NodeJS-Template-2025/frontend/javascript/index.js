@@ -88,7 +88,20 @@ const elements = {
     removeMemberBtn: document.getElementById('removeMemberBtn'),
     networkBackupList: document.getElementById('networkBackupList'),
     quickLanTestBtn: document.getElementById('quickLanTestBtn'),
-    quickLanTestList: document.getElementById('quickLanTestList')
+    quickLanTestList: document.getElementById('quickLanTestList'),
+    // Arcade Game Elements
+    startArcadeGameBtn: document.getElementById('startArcadeGameBtn'),
+    arcadeGameSelectorModal: document.getElementById('arcadeGameSelectorModal'),
+    gameViewTab: document.getElementById('gameViewTab'),
+    chatStageView: document.getElementById('chatStageView'),
+    gameStageView: document.getElementById('gameStageView'),
+    arcadeGameCanvas: document.getElementById('arcadeGameCanvas'),
+    leaveArcadeGameBtn: document.getElementById('leaveArcadeGameBtn'),
+    gameViewTitle: document.getElementById('gameViewTitle'),
+    gameViewPlayers: document.getElementById('gameViewPlayers'),
+    gameStatsPanel: document.getElementById('gameStatsPanel'),
+    gameScoresList: document.getElementById('gameScoresList'),
+    chatStageTabs: Array.from(document.querySelectorAll('.chat-stage-tab'))
 };
 
 const modeButtons = Array.from(document.querySelectorAll('.composer-mode'));
@@ -1109,6 +1122,65 @@ function setupSocket() {
 
         showToast(message);
     });
+
+    // ===== ARCADE GAME SOCKET HANDLERS =====
+    socket.on('arcade:stateUpdate', (state) => {
+        if (!state || !currentGameMode) return;
+
+        const incomingMode = String(state.gameType || '').toLowerCase();
+        if (incomingMode && incomingMode !== String(currentGameMode).toLowerCase()) {
+            return;
+        }
+
+        // Update global game state from server
+        gameState.currentGame = state.gameType;
+        gameState.currentTick = state.currentTick || 0;
+        gameState.isRunning = state.isRunning !== false;
+        gameState.players = state.players || [];
+        gameState.entities = state.entities || [];
+
+        // Update game view header
+        const gameViewTitle = document.getElementById('gameViewTitle');
+        const gameViewPlayers = document.getElementById('gameViewPlayers');
+        if (gameViewTitle) gameViewTitle.textContent = `🎮 ${state.gameType || 'Game'} - Tick ${state.currentTick || 0}`;
+        if (gameViewPlayers) gameViewPlayers.textContent = `Players: ${state.players?.length || 0}`;
+
+        // Start render loop if not already running
+        if (!gameRenderLoopId) {
+            startArcadeGameRenderLoop();
+        }
+    });
+
+    socket.on('arcade:gameStarted', (data) => {
+        const incomingMode = String(data?.gameType || '').toLowerCase();
+        if (!currentGameMode || (incomingMode && incomingMode !== String(currentGameMode).toLowerCase())) {
+            return;
+        }
+
+        gameState.isRunning = true;
+        showToast(`🎮 Game started: ${data.gameType || 'Arcade'}`);
+        startArcadeGameRenderLoop();
+    });
+
+    socket.on('arcade:gameEnded', (data) => {
+        const finalScore = data.finalScore || 0;
+        showToast(`Game ended. Final score: ${finalScore}`);
+        stopArcadeGame();
+        switchGameView('chat');
+    });
+
+    socket.on('arcade:gameStopped', () => {
+        showToast('Jatek leallt. Vissza a chat nezetre.');
+        stopArcadeGame();
+        switchGameView('chat');
+    });
+
+    socket.on('arcade:error', (data) => {
+        const message = data?.message || 'Unknown arcade error';
+        showToast(`🎮 Error: ${message}`);
+        stopArcadeGame();
+        switchGameView('chat');
+    });
 }
 
 async function createRoom() {
@@ -1459,6 +1531,97 @@ function bindEvents() {
             showToast('LAN gyorsteszt sikertelen.');
         }
     });
+
+    // ===== ARCADE GAME EVENTS =====
+
+function showModalById(modalId) {
+    const modalEl = document.getElementById(modalId);
+    if (!modalEl) {
+        return;
+    }
+
+    const modalApi = window.bootstrap?.Modal;
+    if (modalApi?.getOrCreateInstance) {
+        modalApi.getOrCreateInstance(modalEl).show();
+        return;
+    }
+
+    if (typeof window.jQuery === 'function') {
+        window.jQuery(modalEl).modal('show');
+    }
+}
+
+function hideModalById(modalId) {
+    const modalEl = document.getElementById(modalId);
+    if (!modalEl) {
+        return;
+    }
+
+    const modalApi = window.bootstrap?.Modal;
+    if (modalApi?.getInstance) {
+        modalApi.getInstance(modalEl)?.hide();
+        return;
+    }
+
+    if (typeof window.jQuery === 'function') {
+        window.jQuery(modalEl).modal('hide');
+    }
+}
+    const startArcadeGameBtn = document.getElementById('startArcadeGameBtn');
+    if (startArcadeGameBtn) {
+        startArcadeGameBtn.addEventListener('click', () => {
+            showModalById('arcadeGameSelectorModal');
+        });
+    }
+
+    // Game card selection
+    document.querySelectorAll('.arcade-game-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const gameMode = card.dataset.gameMode;
+            if (gameMode && socket && socket.connected) {
+                startArcadeGame(gameMode, socket, currentRoomId, getCurrentUsername());
+                hideModalById('arcadeGameSelectorModal');
+            } else {
+                showToast('Socket nem csatlakoztatva vagy invalid jatek mod.');
+            }
+        });
+    });
+
+    // Tab switching (Chat <-> Game)
+    const chatStageTabs = document.querySelectorAll('.chat-stage-tab');
+    chatStageTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const view = tab.dataset.view;
+            if (view) switchGameView(view);
+        });
+    });
+
+    // Leave game button
+    const leaveArcadeGameBtn = document.getElementById('leaveArcadeGameBtn');
+    if (leaveArcadeGameBtn) {
+        leaveArcadeGameBtn.addEventListener('click', () => {
+            leaveArcadeGame(socket);
+        });
+    }
+
+    // Keyboard input for arcade games (delegated to document)
+    document.addEventListener('keydown', handleArcadeKeyDown);
+    document.addEventListener('keyup', handleArcadeKeyUp);
+
+    // Touch input for arcade games (on canvas)
+    const arcadeGameCanvas = document.getElementById('arcadeGameCanvas');
+    if (arcadeGameCanvas) {
+        arcadeGameCanvas.addEventListener('touchstart', handleArcadeTouchStart, false);
+        arcadeGameCanvas.addEventListener('touchmove', handleArcadeTouchMove, false);
+        arcadeGameCanvas.addEventListener('touchend', (e) => handleArcadeTouchEnd(e, socket), false);
+    }
+
+    // Input polling loop: Send input to server ~60Hz
+    setInterval(() => {
+        if (currentGameMode && socket && socket.connected) {
+            sendArcadeInput(socket);
+        }
+    }, 16.67);
 }
 
 async function bootstrap() {

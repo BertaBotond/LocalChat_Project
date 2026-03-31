@@ -949,6 +949,261 @@ body {
     }
 }
 
+/* ===== ARCADE GAME UI ===== */
+
+/* Game Selector Button */
+#startArcadeGameBtn {
+    background: linear-gradient(135deg, #7cd8ff, #5ab3e8);
+    border: none;
+    color: #0f1f2d;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(124, 216, 255, 0.25);
+}
+
+#startArcadeGameBtn:hover {
+    background: linear-gradient(135deg, #5ab3e8, #3d8ed4);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(124, 216, 255, 0.35);
+    animation: pulse-glow 1.2s ease-in-out;
+}
+
+#startArcadeGameBtn:active {
+    transform: translateY(0);
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 4px 12px rgba(124, 216, 255, 0.25);
+    }
+    50% {
+        box-shadow: 0 8px 24px rgba(124, 216, 255, 0.5);
+    }
+}
+
+/* Chat Stage Tabs */
+.chat-stage-tabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.chat-stage-tab {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -0.5rem;
+}
+
+.chat-stage-tab:hover {
+    color: var(--accent-color);
+}
+
+.chat-stage-tab.active {
+    color: var(--accent-color);
+    border-bottom: 2px solid var(--accent-color);
+}
+
+/* View Containers */
+.chat-stage-view {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.chat-stage-view.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Game View Container */
+.game-view-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    height: 100%;
+}
+
+.game-view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.game-view-header > div h3 {
+    color: var(--accent-color);
+}
+
+#arcadeGameCanvas {
+    width: 100%;
+    max-height: 600px;
+    background: linear-gradient(135deg, #0a1520, #152835);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+.game-stats-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 1rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.game-stats-panel h4 {
+    color: var(--accent-color);
+    margin-bottom: 0.75rem;
+}
+
+.game-scores-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.game-score-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: rgba(124, 216, 255, 0.05);
+    border-radius: 6px;
+    border-left: 3px solid var(--accent-color);
+    font-size: 0.9rem;
+}
+
+.game-score-item.local-player {
+    background: rgba(124, 216, 255, 0.1);
+    border-left: 3px solid #ffb454;
+    font-weight: 600;
+}
+
+.game-score-player-name {
+    color: var(--text-primary);
+}
+
+.game-score-player-score {
+    color: var(--accent-color);
+    font-weight: 500;
+}
+
+/* Game Selector Modal */
+#arcadeGameSelectorModal .modal-content {
+    background: var(--bg-panel);
+    border: 2px solid var(--border-color);
+}
+
+#arcadeGameSelectorModal .modal-header {
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(124, 216, 255, 0.05);
+}
+
+#arcadeGameSelectorModal .modal-title {
+    color: var(--accent-color);
+    font-weight: 700;
+}
+
+#arcadeGameSelectorModal .btn-close {
+    filter: brightness(1.5);
+}
+
+.arcade-games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+    padding: 0.5rem 0;
+}
+
+.arcade-game-card {
+    background: linear-gradient(135deg, rgba(124, 216, 255, 0.08), rgba(90, 179, 232, 0.06));
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.arcade-game-card:hover {
+    background: linear-gradient(135deg, rgba(124, 216, 255, 0.15), rgba(90, 179, 232, 0.12));
+    border: 2px solid var(--accent-color);
+    transform: translateY(-8px);
+    box-shadow: 0 8px 24px rgba(124, 216, 255, 0.2);
+    animation: slideUp 0.3s ease;
+}
+
+.arcade-game-card:active {
+    transform: translateY(-4px);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(-8px);
+    }
+}
+
+.arcade-game-icon {
+    font-size: 3rem;
+    line-height: 1;
+}
+
+.arcade-game-name {
+    color: var(--accent-color);
+    font-weight: 600;
+    margin: 0;
+}
+
+.arcade-game-desc {
+    color: var(--text-tertiary);
+    font-size: 0.8rem;
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .arcade-games-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    #arcadeGameCanvas {
+        max-height: 400px;
+    }
+
+    .game-stats-panel {
+        max-height: 150px;
+    }
+}
+
 /* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar {
     width: 8px;

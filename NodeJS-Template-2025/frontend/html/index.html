@@ -12,7 +12,8 @@
         <script src="../bootstrap/js/bootstrap.min.js"></script>
         <link rel="stylesheet" href="../css/index.css" />
         <script src="/socket.io/socket.io.js"></script>
-        <script src="../javascript/index.js" defer></script>
+            <script src="../javascript/arcade-games.js" defer></script>
+            <script src="../javascript/index.js" defer></script>
     </head>
     <body>
         <div class="app-shell container-fluid py-3 px-3 px-md-4">
@@ -233,7 +234,12 @@
                             </div>
 
                             <div class="chat-stage">
-                                <div class="row g-2 mb-2 controls-row">
+                                <div class="chat-stage-tabs mb-2" id="chatStageTabs">
+                                    <button class="chat-stage-tab active" data-view="chat">💬 Chat</button>
+                                    <button class="chat-stage-tab" data-view="game" id="gameViewTab">🎮 Game</button>
+                                </div>
+
+                                <div class="chat-stage-view active" id="chatStageView">
                                     <div class="col-8">
                                         <input id="searchInput" class="form-control" maxlength="80" placeholder="Kereses uzenetekben (min. 2 karakter)" />
                                     </div>
@@ -256,6 +262,7 @@
                                         <button class="btn btn-outline-light composer-mode" data-mode="emoji" type="button">Emoji</button>
                                         <button class="btn btn-outline-light composer-mode" data-mode="image" type="button">Image</button>
                                     </div>
+                                    <button id="startArcadeGameBtn" class="btn btn-sm btn-primary ms-2" title="Start Arcade Game">🎮 Arcade</button>
                                 </div>
 
                                 <div id="emojiPicker" class="emoji-picker mb-2" hidden>
@@ -299,9 +306,63 @@
                                         <button id="sendBtn" class="btn btn-accent" disabled>Kuldes</button>
                                     </div>
                                 </div>
+                                </div>
+
+                                <div class="chat-stage-view" id="gameStageView">
+                                    <div class="game-view-container">
+                                        <div class="game-view-header">
+                                            <div>
+                                                <h3 class="h6 mb-1" id="gameViewTitle">Arcade Game</h3>
+                                                <p class="small text-light opacity-75 mb-0" id="gameViewPlayers">Players: 0</p>
+                                            </div>
+                                            <button id="leaveArcadeGameBtn" class="btn btn-sm btn-outline-light">Leave Game</button>
+                                        </div>
+                                        <canvas id="arcadeGameCanvas" width="800" height="600" class="game-canvas"></canvas>
+                                        <div class="game-stats-panel" id="gameStatsPanel">
+                                            <h4 class="h6 mb-2">Player Scores</h4>
+                                            <ul class="game-scores-list" id="gameScoresList"></ul>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </section>
+
+                    <!-- Game Selector Modal -->
+                    <div class="modal fade" id="arcadeGameSelectorModal" tabindex="-1" role="dialog" aria-labelledby="arcadeGameSelectorTitle" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="arcadeGameSelectorTitle">🎮 Select a Game Mode</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="arcade-games-grid">
+                                        <div class="arcade-game-card" data-game-mode="agar">
+                                            <div class="arcade-game-icon">🟢</div>
+                                            <h6 class="arcade-game-name">Agar</h6>
+                                            <p class="arcade-game-desc">Eat smaller entities, grow bigger</p>
+                                        </div>
+                                        <div class="arcade-game-card" data-game-mode="slither">
+                                            <div class="arcade-game-icon">🐍</div>
+                                            <h6 class="arcade-game-name">Slither</h6>
+                                            <p class="arcade-game-desc">Build your snake, conquer the board</p>
+                                        </div>
+                                        <div class="arcade-game-card" data-game-mode="racing">
+                                            <div class="arcade-game-icon">🏎️</div>
+                                            <h6 class="arcade-game-name">Racing</h6>
+                                            <p class="arcade-game-desc">Reach checkpoints, race others</p>
+                                        </div>
+                                        <div class="arcade-game-card" data-game-mode="flappy">
+                                            <div class="arcade-game-icon">🐦</div>
+                                            <h6 class="arcade-game-name">Flappy</h6>
+                                            <p class="arcade-game-desc">Navigate obstacles, survive longer</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </main>
             </div>
 
