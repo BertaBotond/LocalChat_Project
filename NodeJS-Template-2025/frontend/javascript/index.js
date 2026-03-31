@@ -262,7 +262,7 @@ function updatePrivateRoomFlowState() {
         setPrivateFlowState(
             'state-owner',
             'Tulajdonosi mód',
-            'Ez a te privát szobád. A kódot megoszthatod, új kódot generálhatsz, és tagokat törölhetsz a tulajdonosi eszközökkel.'
+            'Ez a te privát szobád. 1) Másold ki vagy újítsd meg a meghívókódot. 2) Küldd el annak, akit meg szeretnél hívni. 3) A tulajdonosi eszközöknél tagokat is eltávolíthatsz.'
         );
         return;
     }
@@ -271,7 +271,7 @@ function updatePrivateRoomFlowState() {
         setPrivateFlowState(
             'state-join',
             'Kód szükséges',
-            'Ehhez a privát szobához meghívókód kell. Add meg a kódot, majd kattints a Csatlakozás kóddal gombra.'
+            'Ehhez a privát szobához meghívókód kell. Írd be a kapott kódot, majd kattints a Csatlakozás kóddal gombra.'
         );
         return;
     }
@@ -289,7 +289,7 @@ function updatePrivateRoomFlowState() {
         setPrivateFlowState(
             'state-owner',
             'Létrehozás mód',
-            'Válassz meghívott felhasználókat, majd hozz létre új szobát. A rendszer automatikusan meghívókódot generál.'
+            'Új privát szoba létrehozása: 1) Jelöld ki a Meghívott felhasználók listában, kit hívsz meg. 2) Kattints a Szoba létrehozása gombra. 3) A rendszer létrehozza a meghívókódot is.'
         );
         return;
     }
@@ -297,7 +297,7 @@ function updatePrivateRoomFlowState() {
     setPrivateFlowState(
         '',
         'Nyilvános mód',
-        'Kapcsold be a privát opciót új privát szoba létrehozásához, vagy használj meghívókódot privát csatlakozáshoz.'
+        'Itt nyilvános szobát kezelsz. Ha meghívni szeretnél felhasználókat, kapcsold be a Privát szoba opciót, és megjelenik a Meghívott felhasználók terület.'
     );
 }
 
@@ -1221,7 +1221,7 @@ async function createRoom() {
     await loadStats();
 
     if (isPrivate && room.inviteCode) {
-        showToast(`Privát szoba létrehozva. Meghívókód: ${room.inviteCode}`);
+        showToast(`Privát szoba létrehozva. Meghívókód: ${room.inviteCode} (a tulajdonosi eszközöknél is eléred)`);
     } else {
         showToast('Szoba létrehozva');
     }

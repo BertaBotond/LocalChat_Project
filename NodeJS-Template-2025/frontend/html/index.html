@@ -202,9 +202,9 @@
                                         </div>
                                     </div>
                                     <div class="col-12" id="privateMembersWrap" hidden>
-                                        <label for="privateMembersSelect" class="form-label mb-1">Meghívott felhasználók</label>
+                                        <label for="privateMembersSelect" class="form-label mb-1">Meghívott felhasználók (új privát szobához)</label>
                                         <select id="privateMembersSelect" class="form-select" multiple size="4"></select>
-                                        <small class="text-light opacity-75">Tipp: Ctrl+klikk a többszörös kijelöléshez.</small>
+                                        <small class="text-light opacity-75">Ez a terület csak akkor jelenik meg, ha bekapcsolod a Privát szoba kapcsolót. A kijelöltek automatikusan meghívást kapnak az új szobába.</small>
                                     </div>
                                 </div>
 
@@ -215,11 +215,15 @@
                                     <div class="col-4 col-xl-12 d-grid">
                                         <button id="joinPrivateRoomBtn" class="btn btn-outline-light">Csatlakozás kóddal</button>
                                     </div>
+                                    <div class="col-12">
+                                        <small class="text-light opacity-75">Ezt a blokkot akkor látod, ha az adott privát szobába még nincs hozzáférésed.</small>
+                                    </div>
                                 </div>
 
                                 <div class="row g-2 mb-3 controls-row" id="roomOwnerToolsWrap" hidden>
                                     <div class="col-12">
                                         <label class="form-label mb-1">Privát szoba tulajdonosi eszközök</label>
+                                        <small class="text-light opacity-75 d-block mb-2">Ez a terület csak a szoba tulajdonosának látszik. Itt tudsz meghívókódot másolni/megújítani és tagokat eltávolítani.</small>
                                         <div class="owner-code-row mb-2">
                                             <input id="ownerInviteCode" class="form-control" readonly />
                                             <button id="copyOwnerInviteBtn" class="btn btn-outline-light" type="button">Kód másolása</button>
