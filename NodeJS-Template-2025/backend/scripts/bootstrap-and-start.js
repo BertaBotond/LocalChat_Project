@@ -1,7 +1,8 @@
 /* eslint-disable no-console */
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { spawnSync, spawn } = require('child_process');
+const { decidePreRunStrategy, printDecision } = require('./pre-run-strategy.js');
 
 const backendRoot = path.resolve(__dirname, '..');
 const envPath = path.join(backendRoot, '.env');
@@ -51,6 +52,10 @@ function ensureEnvFile() {
 
 function getNpmCommand() {
     return process.platform === 'win32' ? 'npm.cmd' : 'npm';
+}
+
+function getNpxCommand() {
+    return process.platform === 'win32' ? 'npx.cmd' : 'npx';
 }
 
 function runNpmInstall() {
@@ -125,7 +130,55 @@ async function startServer() {
     printInfo('A szerver indul, varj par masodpercet...');
 
     const { startServer } = require('../server.js');
-    await startServer();
+    return startServer();
+}
+
+function startTunnelIfNeeded(strategy, activePort) {
+    if (strategy.method !== 'tunnel') {
+        return;
+    }
+
+    printSection('Alagut mod (LocalTunnel)');
+    printInfo('Publikus tunnel inditasa automatikusan...');
+
+    const child = spawn(getNpxCommand(), ['--yes', 'localtunnel', '--port', String(activePort)], {
+        cwd: backendRoot,
+        stdio: ['ignore', 'pipe', 'pipe']
+    });
+
+    let published = false;
+    const urlRegex = /https:\/\/[^\s]+/i;
+
+    const handleChunk = (chunk, logMethod = console.log) => {
+        const text = String(chunk || '').trim();
+        if (!text) {
+            return;
+        }
+
+        const match = text.match(urlRegex);
+        if (match && !published) {
+            published = true;
+            printOk(`Tunnel URL: ${match[0]}`);
+            printWarn('Ezt a publikus URL-t oszd meg a kliensekkel, ha LAN-on nem erheto el a szerver.');
+        }
+
+        logMethod(`[TUNNEL] ${text}`);
+    };
+
+    child.stdout.on('data', (chunk) => handleChunk(chunk, console.log));
+    child.stderr.on('data', (chunk) => handleChunk(chunk, console.warn));
+
+    child.on('close', (code) => {
+        printWarn(`LocalTunnel leallt (exit code: ${code}).`);
+    });
+
+    process.on('exit', () => {
+        try {
+            child.kill();
+        } catch (error) {
+            // no-op
+        }
+    });
 }
 
 async function main() {
@@ -134,8 +187,18 @@ async function main() {
 
     ensureEnvFile();
     runNpmInstall();
+
+    const strategy = await decidePreRunStrategy();
+    printDecision(strategy);
+
+    if (Number(strategy.chosenPort) > 0) {
+        process.env.SERVER_PORT = String(strategy.chosenPort);
+        printInfo(`SERVER_PORT automatikusan beallitva: ${process.env.SERVER_PORT}`);
+    }
+
     await runDoctorCheck();
-    await startServer();
+    const serverRuntime = await startServer();
+    startTunnelIfNeeded(strategy, serverRuntime?.activePort || Number(process.env.SERVER_PORT) || 3000);
 }
 
 main().catch((error) => {

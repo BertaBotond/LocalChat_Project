@@ -42,14 +42,16 @@ npm run up
 Mit csinal automatikusan:
 - Letrehozza a `.env` fajlt `.env.example` alapjan, ha hianyzik.
 - Telepiti a fuggosegeket, ha hianyzik a `node_modules`.
+- Pre-run diagnosztika alapjan automatikusan modot valaszt (`direct` / `port-switch` / `tunnel`).
 - Lefuttatja az adatbazis diagnosztikat.
 - Kiirja a kliens URL-eket (localhost + LAN).
+- Tunnel modban publikus `https://...` URL-t is kiir.
 - Ha hiba van, pontos okot es javitasi tippet ad a terminalban.
 
 ### 1️⃣ Előfeltételek / Prerequisites
 - ✅ Node.js (LTS verzió) telepítve
 - ✅ XAMPP MySQL futtatva (127.0.0.1:3306)
-- ✅ 3000-es port elérhető
+- ✅ Legalabb egy elerheto HTTP port (pl. 3000 vagy 8080)
 
 ### 2️⃣ Projekt Beállítása / Project Setup
 ```bash
@@ -73,8 +75,9 @@ npm start
 ```
 
 ### 4️⃣ Kliens Csatlakozása / Connect Client
-- Nyisd meg: `http://127.0.0.1:3000` 
-- Vagy: `http://[LAN IP]:3000` más gépről
+- Nyisd meg: a terminalban kiirt `http://127.0.0.1:<port>` URL-t
+- Vagy: a terminalban kiirt `http://[LAN IP]:<port>` URL-t mas geprol
+- Tunnel modban: a terminalban kiirt `https://...` URL-t
 - Válassz felhasználónevet és szobát
 
 ---
@@ -137,6 +140,7 @@ backend/
 ```env
 SERVER_HOST=0.0.0.0          # Összes interfészen hallgatózz
 SERVER_PORT=3000              # Webszerver port
+STRATEGY_PORT_CANDIDATES=8080,80,443  # Automata portvaltas sorrend
 LAN_ONLY=true                 # Csak LAN hozzáférés
 
 DB_HOST=127.0.0.1             # MySQL szerver

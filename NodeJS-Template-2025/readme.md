@@ -98,12 +98,14 @@ Ez a resz arrol szol, hogyan mukodik a rendszer a hatterben.
 A `npm run up` vagy `npm run dev` inditas utan a backend:
 
 1. betolti a runtime configot,
-2. inicializalja az adatbazist,
-3. lefuttatja a startup smoke tesztet,
-4. elinditja a HTTP + Socket szervert,
-5. fallback portot hasznal, ha az alap port foglalt,
-6. elinditja a discovery szolgaltatast,
-7. periodikusan allapot snapshotot logol.
+2. `npm run up` eseten lefuttat egy pre-run diagnosztikat,
+3. automatikusan futasi modot valaszt (`direct` / `port-switch` / `tunnel`),
+4. inicializalja az adatbazist,
+5. lefuttatja a startup smoke tesztet,
+6. elinditja a HTTP + Socket szervert,
+7. fallback portot hasznal, ha az alap port foglalt,
+8. elinditja a discovery szolgaltatast,
+9. periodikusan allapot snapshotot logol.
 
 ### 2.3 Adatbazis es recovery
 
@@ -172,6 +174,7 @@ A legfontosabb valtozok:
 - `LOG_ENCRYPTION_KEY`, `ADMIN_TOKEN`
 - `SECURE_LOG_FLUSH_MS`, `SECURE_LOG_BATCH_SIZE`, `SECURE_LOG_ROTATE_MAX_BYTES`, `SECURE_LOG_ROTATE_FILES`
 - `STARTUP_SMOKE_STRICT`, `AUTO_SNAPSHOT_INTERVAL_MS`
+- `STRATEGY_PORT_CANDIDATES` (pl. `8080,80,443`)
 
 Discovery modok roviden:
 
@@ -205,6 +208,13 @@ npm run smoke
 npm run verify:full
 npm run verify:full:nostrict
 ```
+
+`npm run up` inditaskor automata strategia dontes tortenik a fenti diagnosztikai jelek alapjan:
+
+1. Ha a `3000` valoszinuleg blokkolt/problemas, automatikus portvaltas (`8080,80,443` sorrend, `STRATEGY_PORT_CANDIDATES`-szel felulirhato).
+2. Ha localhost OK, de LAN probe nem, a rendszer tunnel modot valaszt (`localtunnel`) es kiir egy publikus URL-t.
+3. Ha AP isolation/VLAN gyanus, terminalban hotspot javaslatot is kapsz.
+4. Browser-check hintet is kapsz (`127.0.0.1` vs LAN IP) root-cause segitsegre.
 
 `diag:computer` mit ellenoriz:
 
@@ -258,5 +268,6 @@ npm run up
 
 Ezutan:
 
-1. Chat: `http://localhost:3000`
-2. Admin: `http://localhost:3000/admin`
+1. Chat: a terminalban kiirt aktualis URL (pl. `http://localhost:3000` vagy `http://localhost:8080`)
+2. Admin: ugyanazon porton `/admin`
+3. Tunnel modban: a terminalban kiirt publikus `https://...` URL

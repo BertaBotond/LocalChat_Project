@@ -930,6 +930,12 @@ async function startServer() {
             connectUrls,
             discoveryMode: runtimeConfig.discoveryMode
         });
+
+        return {
+            activePort,
+            connectUrls,
+            discoveryMode: runtimeConfig.discoveryMode
+        };
     } catch (error) {
         console.error('A szerver nem indult el, mert az adatbazis inicializalasa sikertelen.');
         console.error(error.message);
