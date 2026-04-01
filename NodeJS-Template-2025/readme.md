@@ -200,6 +200,7 @@ npm run doctor
 npm run diag:db
 npm run diag:network
 npm run diag:computer
+npm run diag:oneshot
 npm run smoke
 npm run verify:full
 npm run verify:full:nostrict
@@ -212,6 +213,15 @@ npm run verify:full:nostrict
 3. Hostname feloldas (DNS/hosts alapok).
 4. Windows Firewall profilok es inbound allow szabalyok az app portra.
 5. Aktiv listener folyamatok az app porton.
+
+`diag:oneshot` mit ellenoriz (egyszer futtatva mindent):
+
+1. Runtime + DB allapot (`doctor`).
+2. Discovery/interface/range allapot (`diag:network`).
+3. Gep-szintu halozati jogok/probe/firewall/listener (`diag:computer`).
+4. API elerhetoseg (`/api/config`, `/api/network-diagnostics`, `/api/hosts`, `/api/quick-lan-test`).
+5. Automatikus root-cause becsles confidence ertekkel.
+6. Célzott `schoolNetworkChecklist` blokk AP isolation / VLAN / Windows rule ellenorzessel.
 
 Teljes ellenorzes futtatas:
 

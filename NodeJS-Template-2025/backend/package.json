@@ -11,6 +11,7 @@
         "up:force-install": "npm install && node scripts/bootstrap-and-start.js",
         "diag:network": "node scripts/network-diagnostics.js",
         "diag:computer": "node scripts/computer-network-diagnostics.js",
+        "diag:oneshot": "node scripts/one-shot-diagnostics.js",
         "diag:db": "node scripts/db-diagnostics.js",
         "doctor": "node scripts/doctor.js",
         "smoke": "node scripts/startup-smoke.js",
