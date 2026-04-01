@@ -199,10 +199,19 @@ Javasolt minta tobb gephez:
 npm run doctor
 npm run diag:db
 npm run diag:network
+npm run diag:computer
 npm run smoke
 npm run verify:full
 npm run verify:full:nostrict
 ```
+
+`diag:computer` mit ellenoriz:
+
+1. Port bind jogok (`0.0.0.0:SERVER_PORT`, `127.0.0.1:SERVER_PORT`).
+2. TCP kapcsolodas localhostra es preferalt LAN IP-re.
+3. Hostname feloldas (DNS/hosts alapok).
+4. Windows Firewall profilok es inbound allow szabalyok az app portra.
+5. Aktiv listener folyamatok az app porton.
 
 Teljes ellenorzes futtatas:
 
@@ -223,6 +232,7 @@ Teljes ellenorzes futtatas:
 5. Hostok pingelhetok, de `Host statuszok` listaban nem latszanak online-nak:
    - ellenorizd: `DISCOVERY_MODE`, `SERVER_PORT`/`AGENT_PORT` es hogy a cel gepen fut-e a backend.
    - futtasd: `npm run diag:network`, majd nezd meg hogy a `discoveryRange` a valos LAN tartomanyra mutat-e.
+   - futtasd: `npm run diag:computer`, es nezd meg a `likelyIssues` tombot (pl. firewall blokk / bind hiba / localhost connect hiba).
    - ha rossz adapter/range latszik, allits be kezileg: `IP_BASE`, `IP_START`, `IP_END`.
 
 ---
