@@ -165,10 +165,17 @@ Admin (vedett):
 A legfontosabb valtozok:
 
 - `SERVER_HOST`, `SERVER_PORT`, `LAN_ONLY`
+- `DISCOVERY_MODE`, `DISCOVERY_AUTO_RANGE`, `DISCOVERY_INTERVAL_MS`, `DISCOVERY_CONCURRENCY`
+- `IP_BASE`, `IP_START`, `IP_END`, `AGENT_PORT`
 - `DB_HOST`, `DB_HOST_AUTO`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
 - `LOG_ENCRYPTION_KEY`, `ADMIN_TOKEN`
 - `SECURE_LOG_FLUSH_MS`, `SECURE_LOG_BATCH_SIZE`, `SECURE_LOG_ROTATE_MAX_BYTES`, `SECURE_LOG_ROTATE_FILES`
 - `STARTUP_SMOKE_STRICT`, `AUTO_SNAPSHOT_INTERVAL_MS`
+
+Discovery modok roviden:
+
+- `DISCOVERY_MODE=fallback`: host status `SERVER_PORT` + `/health` probe alapjan megy, es chat csatlakozas is beleszamit az online jelzesbe.
+- `DISCOVERY_MODE=agent`: host status kulon agent health endpoint alapjan megy (`AGENT_PORT`).
 
 Javasolt minta tobb gephez:
 
@@ -201,6 +208,10 @@ Teljes ellenorzes futtatas:
    - ellenorizd MySQL futast, host/port beallitast, firewall szabalyokat.
 4. Kliens nem csatlakozik LAN-on:
    - localhost helyett LAN IP-t hasznalj.
+5. Hostok pingelhetok, de `Host statuszok` listaban nem latszanak online-nak:
+   - ellenorizd: `DISCOVERY_MODE`, `SERVER_PORT`/`AGENT_PORT` es hogy a cel gepen fut-e a backend.
+   - futtasd: `npm run diag:network`, majd nezd meg hogy a `discoveryRange` a valos LAN tartomanyra mutat-e.
+   - ha rossz adapter/range latszik, allits be kezileg: `IP_BASE`, `IP_START`, `IP_END`.
 
 ---
 

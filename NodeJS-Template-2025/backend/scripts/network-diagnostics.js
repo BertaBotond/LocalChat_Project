@@ -11,6 +11,8 @@ function main() {
         serverPort: config.serverPort,
         lanOnly: config.lanOnly,
         discoveryMode: config.discoveryMode,
+        discoverySource: config.discoveryMode === 'agent' ? 'agent-health' : 'http-health-plus-chat-presence',
+        discoveryHealthCheckPort: config.discoveryMode === 'agent' ? config.agentPort : config.serverPort,
         autoRangeEnabled: config.autoRangeEnabled,
         discoveryRange: {
             ipBase: config.ipBase,

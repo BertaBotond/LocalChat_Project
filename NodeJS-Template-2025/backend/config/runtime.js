@@ -32,21 +32,21 @@ function getRuntimeConfig() {
         process.env.IP_START !== undefined &&
         process.env.IP_END !== undefined;
 
-    const ipBase = hasManualRange
-        ? process.env.IP_BASE
-        : autoRangeEnabled
-          ? diagnostics.range.ipBase
-          : '10.2.30';
-    const ipStart = hasManualRange
-        ? getNumberEnv('IP_START', 1)
-        : autoRangeEnabled
-          ? diagnostics.range.ipStart
-          : 1;
-    const ipEnd = hasManualRange
-        ? getNumberEnv('IP_END', 16)
-        : autoRangeEnabled
-          ? diagnostics.range.ipEnd
-          : 16;
+        const ipBase = autoRangeEnabled
+                ? diagnostics.range.ipBase
+                : hasManualRange
+                    ? process.env.IP_BASE
+                    : '10.2.30';
+        const ipStart = autoRangeEnabled
+                ? diagnostics.range.ipStart
+                : hasManualRange
+                    ? getNumberEnv('IP_START', 1)
+                    : 1;
+        const ipEnd = autoRangeEnabled
+                ? diagnostics.range.ipEnd
+                : hasManualRange
+                    ? getNumberEnv('IP_END', 16)
+                    : 16;
     const discoveryIntervalMs = getNumberEnv('DISCOVERY_INTERVAL_MS', 5000);
     const discoveryConcurrency = getNumberEnv('DISCOVERY_CONCURRENCY', 8);
     const agentPort = getNumberEnv('AGENT_PORT', 4123);

@@ -270,6 +270,7 @@ router.get('/config', (request, response) => {
 router.get('/network-diagnostics', (request, response) => {
     const config = request.app.locals.runtimeConfig || getRuntimeConfig();
     const connectUrls = request.app.locals.connectUrls || config.networkDiagnostics?.connectUrls || [];
+    const healthCheckPort = config.discoveryMode === 'agent' ? config.agentPort : config.serverPort;
 
     response.status(200).json({
         preferredInterface: config.networkDiagnostics?.preferredInterface || null,
@@ -277,7 +278,12 @@ router.get('/network-diagnostics', (request, response) => {
         connectUrls,
         interfaces: config.networkDiagnostics?.interfaces || [],
         adapters: config.networkDiagnostics?.adapters || [],
-        universalPlan: config.networkDiagnostics?.universalPlan || []
+        universalPlan: config.networkDiagnostics?.universalPlan || [],
+        discovery: {
+            mode: config.discoveryMode,
+            healthCheckPort,
+            source: config.discoveryMode === 'agent' ? 'agent-health' : 'http-health-plus-chat-presence'
+        }
     });
 });
 
@@ -765,15 +771,21 @@ router.get('/stats', async (request, response) => {
 router.get('/hosts', async (request, response) => {
     try {
         const hosts = await database.getHostStatuses();
+        const config = request.app.locals.runtimeConfig || getRuntimeConfig();
         const getConnectedUsers = request.app.locals.getConnectedUsers;
         const connectedUsers = typeof getConnectedUsers === 'function' ? getConnectedUsers() : [];
         const connectedIps = new Set(
             connectedUsers.map((item) => item.clientIp).filter((item) => typeof item === 'string')
         );
+        const discoverySource =
+            config.discoveryMode === 'agent' ? 'agent-health' : 'http-health-plus-chat-presence';
+        const healthCheckPort = config.discoveryMode === 'agent' ? config.agentPort : config.serverPort;
 
         const payload = hosts.map((host) => ({
             ...host,
-            chatConnected: connectedIps.has(host.ip)
+            chatConnected: connectedIps.has(host.ip),
+            discoverySource,
+            healthCheckPort
         }));
 
         response.status(200).json(payload);
@@ -787,6 +799,7 @@ router.get('/hosts', async (request, response) => {
 router.post('/hosts/rescan', async (request, response) => {
     try {
         const runDiscoveryOnce = request.app.locals.runDiscoveryOnce;
+        const config = request.app.locals.runtimeConfig || getRuntimeConfig();
 
         if (typeof runDiscoveryOnce !== 'function') {
             response.status(503).json({
@@ -802,10 +815,15 @@ router.post('/hosts/rescan', async (request, response) => {
         const connectedIps = new Set(
             connectedUsers.map((item) => item.clientIp).filter((item) => typeof item === 'string')
         );
+        const discoverySource =
+            config.discoveryMode === 'agent' ? 'agent-health' : 'http-health-plus-chat-presence';
+        const healthCheckPort = config.discoveryMode === 'agent' ? config.agentPort : config.serverPort;
 
         const payload = hosts.map((host) => ({
             ...host,
-            chatConnected: connectedIps.has(host.ip)
+            chatConnected: connectedIps.has(host.ip),
+            discoverySource,
+            healthCheckPort
         }));
 
         response.status(200).json(payload);

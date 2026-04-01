@@ -55,6 +55,7 @@ function createDiscoveryService(options) {
         discoveryIntervalMs,
         discoveryConcurrency,
         agentPort,
+        fallbackPort,
         updateStatuses,
         emitHostsUpdate,
         getConnectedIps
@@ -78,12 +79,18 @@ function createDiscoveryService(options) {
                     typeof getConnectedIps === 'function' ? getConnectedIps() : []
                 );
 
-                const statuses = ips.map((ip) => ({
-                    ip,
-                    status: connectedSet.has(ip) ? 'online' : 'offline',
-                    lastCheckedAt: now,
-                    lastSeenAt: connectedSet.has(ip) ? now : null
-                }));
+                const statuses = await runWithConcurrency(ips, discoveryConcurrency, async (ip) => {
+                    const reachable = await checkHealth(ip, fallbackPort || agentPort);
+                    const chatConnected = connectedSet.has(ip);
+                    const online = reachable || chatConnected;
+
+                    return {
+                        ip,
+                        status: online ? 'online' : 'offline',
+                        lastCheckedAt: now,
+                        lastSeenAt: online ? now : null
+                    };
+                });
 
                 await updateStatuses(statuses);
                 await emitHostsUpdate();

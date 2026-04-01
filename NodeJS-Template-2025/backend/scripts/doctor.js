@@ -15,6 +15,8 @@ async function main() {
             serverPort: runtime.serverPort,
             lanOnly: runtime.lanOnly,
             discoveryMode: runtime.discoveryMode,
+            discoverySource: runtime.discoveryMode === 'agent' ? 'agent-health' : 'http-health-plus-chat-presence',
+            discoveryHealthCheckPort: runtime.discoveryMode === 'agent' ? runtime.agentPort : runtime.serverPort,
             autoRangeEnabled: runtime.autoRangeEnabled,
             ipBase: runtime.ipBase,
             ipStart: runtime.ipStart,

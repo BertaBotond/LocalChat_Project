@@ -769,10 +769,13 @@ function renderHosts(hosts = hostsCache) {
 
     elements.hostsList.innerHTML = filteredHosts
         .map(
-            (host) =>
-                `<li><span>${escapeHtml(host.ip)} ${
-                    host.chatConnected ? '<small>(chat)</small>' : ''
-                }</span>${stateBadge(host.status)}</li>`
+            (host) => {
+                const source = escapeHtml(host.discoverySource || 'unknown-source');
+                const port = Number(host.healthCheckPort || 0) > 0 ? `:${Number(host.healthCheckPort)}` : '';
+                const chatLabel = host.chatConnected ? '<small>(chat)</small>' : '';
+
+                return `<li><span>${escapeHtml(host.ip)} ${chatLabel} <small class="text-secondary">${source}${port}</small></span>${stateBadge(host.status)}</li>`;
+            }
         )
         .join('');
 }
@@ -840,7 +843,11 @@ async function fetchJson(url, options) {
 async function loadConfig() {
     runtimeConfig = await fetchJson('/api/config');
     elements.rangeInfo.textContent = `${runtimeConfig.ipBase}.${runtimeConfig.ipStart} - ${runtimeConfig.ipBase}.${runtimeConfig.ipEnd} (${runtimeConfig.discoveryMode})`;
-    setBadgeState(elements.discoveryStatus, 'Discovery fut', 'ok');
+    if (runtimeConfig.discoveryMode === 'fallback') {
+        setBadgeState(elements.discoveryStatus, 'Discovery fut (HTTP+chat)', 'ok');
+    } else {
+        setBadgeState(elements.discoveryStatus, 'Discovery fut (agent)', 'ok');
+    }
 
     const connectInfo = Array.isArray(runtimeConfig.connectUrls)
         ? runtimeConfig.connectUrls.join(' | ')

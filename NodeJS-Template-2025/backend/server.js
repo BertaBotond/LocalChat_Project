@@ -857,6 +857,7 @@ async function startServer() {
             discoveryIntervalMs: runtimeConfig.discoveryIntervalMs,
             discoveryConcurrency: runtimeConfig.discoveryConcurrency,
             agentPort: runtimeConfig.agentPort,
+            fallbackPort: runtimeConfig.serverPort,
             updateStatuses: database.updateHostStatuses,
             emitHostsUpdate,
             getConnectedIps

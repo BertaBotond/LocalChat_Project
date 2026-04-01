@@ -4,12 +4,26 @@ function isIPv4(value) {
     return /^\d{1,3}(\.\d{1,3}){3}$/.test(value);
 }
 
-function isPrivateIPv4(ip) {
+function getIPv4Octets(ip) {
     if (!isIPv4(ip)) {
+        return null;
+    }
+
+    const parts = ip.split('.').map(Number);
+    if (parts.some((item) => Number.isNaN(item) || item < 0 || item > 255)) {
+        return null;
+    }
+
+    return parts;
+}
+
+function isPrivateIPv4(ip) {
+    const parts = getIPv4Octets(ip);
+    if (!parts) {
         return false;
     }
 
-    const [a, b] = ip.split('.').map(Number);
+    const [a, b] = parts;
 
     if (a === 10) {
         return true;
@@ -20,6 +34,14 @@ function isPrivateIPv4(ip) {
     }
 
     if (a === 192 && b === 168) {
+        return true;
+    }
+
+    if (a === 100 && b >= 64 && b <= 127) {
+        return true;
+    }
+
+    if (a === 169 && b === 254) {
         return true;
     }
 
@@ -70,20 +92,45 @@ function getInterfacesSummary() {
 
 function getPreferredLanInterface() {
     const all = getInterfacesSummary();
+    const ipv4Candidates = all.filter((item) => item.family === 'IPv4' && item.internal === false && isIPv4(item.address));
 
-    const preferred = all.find(
-        (item) =>
-            item.family === 'IPv4' &&
-            item.internal === false &&
-            isPrivateIPv4(item.address) &&
-            !item.address.startsWith('169.254.')
-    );
-
-    if (preferred) {
-        return preferred;
+    if (!ipv4Candidates.length) {
+        return null;
     }
 
-    return all.find((item) => item.family === 'IPv4' && item.internal === false) || null;
+    const scored = ipv4Candidates
+        .map((item) => {
+            const profile = classifyInterfaceName(item.name);
+            let score = 0;
+
+            if (isPrivateIPv4(item.address)) {
+                score += 100;
+            }
+
+            if (!item.address.startsWith('169.254.')) {
+                score += 25;
+            }
+
+            if (profile === 'wired') {
+                score += 20;
+            } else if (profile === 'wifi') {
+                score += 18;
+            } else if (profile === 'other') {
+                score += 10;
+            } else if (profile === 'vpn') {
+                score -= 25;
+            } else if (profile === 'virtual') {
+                score -= 30;
+            }
+
+            return {
+                ...item,
+                score
+            };
+        })
+        .sort((left, right) => right.score - left.score);
+
+    return scored[0] || null;
 }
 
 function getRecommendedRange(preferredInterface) {
