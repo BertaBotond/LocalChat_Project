@@ -282,7 +282,8 @@ router.get('/network-diagnostics', (request, response) => {
         discovery: {
             mode: config.discoveryMode,
             healthCheckPort,
-            source: config.discoveryMode === 'agent' ? 'agent-health' : 'http-health-plus-chat-presence'
+            source: config.discoveryMode === 'agent' ? 'agent-health' : 'http-health-plus-chat-presence',
+            lanAllowedIpv4Cidrs: config.networkDiagnostics?.lanAllowedIpv4Cidrs || []
         }
     });
 });
@@ -768,6 +769,24 @@ router.get('/stats', async (request, response) => {
     }
 });
 
+function toHostStatusPayload(host, connectedIps, config) {
+    const chatConnected = connectedIps.has(host.ip) || host.chat_status === 'connected';
+    const networkReachable = host.network_status === 'reachable' || host.status === 'online';
+    const discoverySource =
+        config.discoveryMode === 'agent' ? 'agent-health' : 'http-health-plus-chat-presence';
+    const healthCheckPort = config.discoveryMode === 'agent' ? config.agentPort : config.serverPort;
+
+    return {
+        ...host,
+        chatConnected,
+        networkReachable,
+        chatStatus: chatConnected ? 'connected' : 'disconnected',
+        reachabilityStatus: networkReachable ? 'reachable' : 'unreachable',
+        discoverySource,
+        healthCheckPort
+    };
+}
+
 router.get('/hosts', async (request, response) => {
     try {
         const hosts = await database.getHostStatuses();
@@ -777,16 +796,7 @@ router.get('/hosts', async (request, response) => {
         const connectedIps = new Set(
             connectedUsers.map((item) => item.clientIp).filter((item) => typeof item === 'string')
         );
-        const discoverySource =
-            config.discoveryMode === 'agent' ? 'agent-health' : 'http-health-plus-chat-presence';
-        const healthCheckPort = config.discoveryMode === 'agent' ? config.agentPort : config.serverPort;
-
-        const payload = hosts.map((host) => ({
-            ...host,
-            chatConnected: connectedIps.has(host.ip),
-            discoverySource,
-            healthCheckPort
-        }));
+        const payload = hosts.map((host) => toHostStatusPayload(host, connectedIps, config));
 
         response.status(200).json(payload);
     } catch (error) {
@@ -815,16 +825,7 @@ router.post('/hosts/rescan', async (request, response) => {
         const connectedIps = new Set(
             connectedUsers.map((item) => item.clientIp).filter((item) => typeof item === 'string')
         );
-        const discoverySource =
-            config.discoveryMode === 'agent' ? 'agent-health' : 'http-health-plus-chat-presence';
-        const healthCheckPort = config.discoveryMode === 'agent' ? config.agentPort : config.serverPort;
-
-        const payload = hosts.map((host) => ({
-            ...host,
-            chatConnected: connectedIps.has(host.ip),
-            discoverySource,
-            healthCheckPort
-        }));
+        const payload = hosts.map((host) => toHostStatusPayload(host, connectedIps, config));
 
         response.status(200).json(payload);
     } catch (error) {

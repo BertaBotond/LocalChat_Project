@@ -1,4 +1,4 @@
-const { getNetworkDiagnostics } = require('./network.js');
+const { getNetworkDiagnostics, getIpRangeFromBase } = require('./network.js');
 
 function getNumberEnv(name, defaultValue) {
     const value = Number(process.env[name]);
@@ -70,13 +70,7 @@ function getRuntimeConfig() {
 }
 
 function getIpRange(config = getRuntimeConfig()) {
-    const ips = [];
-
-    for (let octet = config.ipStart; octet <= config.ipEnd; octet += 1) {
-        ips.push(`${config.ipBase}.${octet}`);
-    }
-
-    return ips;
+    return getIpRangeFromBase(config.ipBase, config.ipStart, config.ipEnd);
 }
 
 module.exports = {

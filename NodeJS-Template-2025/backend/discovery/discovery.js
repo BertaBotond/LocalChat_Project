@@ -86,6 +86,10 @@ function createDiscoveryService(options) {
 
                     return {
                         ip,
+                        networkReachable: reachable,
+                        chatConnected,
+                        reachabilityStatus: reachable ? 'reachable' : 'unreachable',
+                        chatStatus: chatConnected ? 'connected' : 'disconnected',
                         status: online ? 'online' : 'offline',
                         lastCheckedAt: now,
                         lastSeenAt: online ? now : null
@@ -97,14 +101,24 @@ function createDiscoveryService(options) {
                 return;
             }
 
+            const connectedSet = new Set(
+                typeof getConnectedIps === 'function' ? getConnectedIps() : []
+            );
+
             const statuses = await runWithConcurrency(ips, discoveryConcurrency, async (ip) => {
                 const online = await checkHealth(ip, agentPort);
+                const chatConnected = connectedSet.has(ip);
+                const combinedOnline = online || chatConnected;
 
                 return {
                     ip,
-                    status: online ? 'online' : 'offline',
+                    networkReachable: online,
+                    chatConnected,
+                    reachabilityStatus: online ? 'reachable' : 'unreachable',
+                    chatStatus: chatConnected ? 'connected' : 'disconnected',
+                    status: combinedOnline ? 'online' : 'offline',
                     lastCheckedAt: now,
-                    lastSeenAt: online ? now : null
+                    lastSeenAt: combinedOnline ? now : null
                 };
             });
 

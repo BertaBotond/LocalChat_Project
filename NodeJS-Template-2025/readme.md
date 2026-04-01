@@ -165,6 +165,7 @@ Admin (vedett):
 A legfontosabb valtozok:
 
 - `SERVER_HOST`, `SERVER_PORT`, `LAN_ONLY`
+- `LAN_ALLOWED_IPV4_CIDRS`
 - `DISCOVERY_MODE`, `DISCOVERY_AUTO_RANGE`, `DISCOVERY_INTERVAL_MS`, `DISCOVERY_CONCURRENCY`
 - `IP_BASE`, `IP_START`, `IP_END`, `AGENT_PORT`
 - `DB_HOST`, `DB_HOST_AUTO`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
@@ -176,6 +177,17 @@ Discovery modok roviden:
 
 - `DISCOVERY_MODE=fallback`: host status `SERVER_PORT` + `/health` probe alapjan megy, es chat csatlakozas is beleszamit az online jelzesbe.
 - `DISCOVERY_MODE=agent`: host status kulon agent health endpoint alapjan megy (`AGENT_PORT`).
+
+Host statusz szemantika:
+
+- `status`: visszafele kompatibilis osszegzett allapot (`online` ha network reachable vagy chat connected).
+- `reachabilityStatus` / `network_status`: halozati elerhetoseg (`reachable` / `unreachable`).
+- `chatStatus` / `chat_status`: chat kapcsolat allapot (`connected` / `disconnected`).
+
+LAN CIDR allowlist:
+
+- `LAN_ALLOWED_IPV4_CIDRS` opcionisan felulirja a LAN_ONLY IPv4 tartomanyokat (vesszovel elvalasztott CIDR lista).
+- Pelda: `LAN_ALLOWED_IPV4_CIDRS=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10,169.254.0.0/16,127.0.0.0/8`
 
 Javasolt minta tobb gephez:
 

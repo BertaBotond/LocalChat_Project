@@ -14,9 +14,16 @@ async function main() {
             serverHost: runtime.serverHost,
             serverPort: runtime.serverPort,
             lanOnly: runtime.lanOnly,
-            discoveryMode: runtime.discoveryMode,
-            discoverySource: runtime.discoveryMode === 'agent' ? 'agent-health' : 'http-health-plus-chat-presence',
-            discoveryHealthCheckPort: runtime.discoveryMode === 'agent' ? runtime.agentPort : runtime.serverPort,
+            discovery: {
+                mode: runtime.discoveryMode,
+                source:
+                    runtime.discoveryMode === 'agent'
+                        ? 'agent-health'
+                        : 'http-health-plus-chat-presence',
+                healthCheckPort:
+                    runtime.discoveryMode === 'agent' ? runtime.agentPort : runtime.serverPort,
+                lanAllowedIpv4Cidrs: runtime.networkDiagnostics?.lanAllowedIpv4Cidrs || []
+            },
             autoRangeEnabled: runtime.autoRangeEnabled,
             ipBase: runtime.ipBase,
             ipStart: runtime.ipStart,

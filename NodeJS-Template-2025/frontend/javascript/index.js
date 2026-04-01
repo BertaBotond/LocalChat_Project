@@ -772,9 +772,10 @@ function renderHosts(hosts = hostsCache) {
             (host) => {
                 const source = escapeHtml(host.discoverySource || 'unknown-source');
                 const port = Number(host.healthCheckPort || 0) > 0 ? `:${Number(host.healthCheckPort)}` : '';
-                const chatLabel = host.chatConnected ? '<small>(chat)</small>' : '';
+                const reachabilityStatus = escapeHtml(host.reachabilityStatus || 'unknown');
+                const chatStatus = escapeHtml(host.chatStatus || 'unknown');
 
-                return `<li><span>${escapeHtml(host.ip)} ${chatLabel} <small class="text-secondary">${source}${port}</small></span>${stateBadge(host.status)}</li>`;
+                return `<li><span>${escapeHtml(host.ip)} <small class="text-secondary">net:${reachabilityStatus} | chat:${chatStatus} | ${source}${port}</small></span>${stateBadge(host.status)}</li>`;
             }
         )
         .join('');
@@ -904,7 +905,27 @@ async function loadMessages() {
 }
 
 async function loadHosts() {
-    const hosts = await fetchJson('/api/hosts');
+    const payload = await fetchJson('/api/hosts');
+    const hosts = (Array.isArray(payload) ? payload : []).map((host) => {
+        const chatConnected =
+            typeof host.chatConnected === 'boolean'
+                ? host.chatConnected
+                : host.chat_status === 'connected';
+        const networkReachable =
+            typeof host.networkReachable === 'boolean'
+                ? host.networkReachable
+                : host.network_status === 'reachable' || host.status === 'online';
+
+        return {
+            ...host,
+            chatConnected,
+            networkReachable,
+            chatStatus: host.chatStatus || (chatConnected ? 'connected' : 'disconnected'),
+            reachabilityStatus:
+                host.reachabilityStatus || (networkReachable ? 'reachable' : 'unreachable')
+        };
+    });
+
     renderHosts(hosts);
 }
 

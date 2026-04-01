@@ -186,7 +186,18 @@ async function emitHostsUpdate() {
         'hostsUpdate',
         hosts.map((host) => ({
             ...host,
-            chatConnected: connectedIps.has(host.ip)
+            networkReachable:
+                host.network_status === 'reachable' || host.status === 'online',
+            chatConnected:
+                connectedIps.has(host.ip) || host.chat_status === 'connected',
+            reachabilityStatus:
+                host.network_status === 'reachable' || host.status === 'online'
+                    ? 'reachable'
+                    : 'unreachable',
+            chatStatus:
+                connectedIps.has(host.ip) || host.chat_status === 'connected'
+                    ? 'connected'
+                    : 'disconnected'
         }))
     );
 }

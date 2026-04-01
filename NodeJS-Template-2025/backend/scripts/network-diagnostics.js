@@ -10,9 +10,12 @@ function main() {
         serverHost: config.serverHost,
         serverPort: config.serverPort,
         lanOnly: config.lanOnly,
-        discoveryMode: config.discoveryMode,
-        discoverySource: config.discoveryMode === 'agent' ? 'agent-health' : 'http-health-plus-chat-presence',
-        discoveryHealthCheckPort: config.discoveryMode === 'agent' ? config.agentPort : config.serverPort,
+        discovery: {
+            mode: config.discoveryMode,
+            source: config.discoveryMode === 'agent' ? 'agent-health' : 'http-health-plus-chat-presence',
+            healthCheckPort: config.discoveryMode === 'agent' ? config.agentPort : config.serverPort,
+            lanAllowedIpv4Cidrs: config.networkDiagnostics?.lanAllowedIpv4Cidrs || []
+        },
         autoRangeEnabled: config.autoRangeEnabled,
         discoveryRange: {
             ipBase: config.ipBase,

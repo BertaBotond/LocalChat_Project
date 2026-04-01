@@ -1,5 +1,14 @@
 const os = require('os');
 
+const DEFAULT_ALLOWED_IPV4_CIDRS = [
+    '10.0.0.0/8',
+    '172.16.0.0/12',
+    '192.168.0.0/16',
+    '127.0.0.0/8',
+    '100.64.0.0/10',
+    '169.254.0.0/16'
+];
+
 function isIPv4(value) {
     return /^\d{1,3}(\.\d{1,3}){3}$/.test(value);
 }
@@ -17,35 +26,71 @@ function getIPv4Octets(ip) {
     return parts;
 }
 
-function isPrivateIPv4(ip) {
-    const parts = getIPv4Octets(ip);
-    if (!parts) {
+function parseCidr(cidr) {
+    if (typeof cidr !== 'string') {
+        return null;
+    }
+
+    const [networkIp, prefixRaw] = cidr.trim().split('/');
+    const prefix = Number(prefixRaw);
+    const octets = getIPv4Octets(networkIp);
+
+    if (!octets || !Number.isInteger(prefix) || prefix < 0 || prefix > 32) {
+        return null;
+    }
+
+    return {
+        networkIp,
+        prefix,
+        networkInt: ipv4ToInt(networkIp)
+    };
+}
+
+function ipv4ToInt(ip) {
+    const octets = getIPv4Octets(ip);
+    if (!octets) {
+        return null;
+    }
+
+    const [a, b, c, d] = octets;
+    return (((a << 24) >>> 0) + (b << 16) + (c << 8) + d) >>> 0;
+}
+
+function isIpInCidr(ip, cidr) {
+    const ipInt = ipv4ToInt(ip);
+    const parsed = parseCidr(cidr);
+
+    if (ipInt === null || !parsed) {
         return false;
     }
 
-    const [a, b] = parts;
-
-    if (a === 10) {
+    if (parsed.prefix === 0) {
         return true;
     }
 
-    if (a === 172 && b >= 16 && b <= 31) {
-        return true;
+    const mask = (0xffffffff << (32 - parsed.prefix)) >>> 0;
+    return (ipInt & mask) === (parsed.networkInt & mask);
+}
+
+function getAllowedIpv4Cidrs() {
+    const raw = (process.env.LAN_ALLOWED_IPV4_CIDRS || '').trim();
+    const fromEnv = raw
+        ? raw
+              .split(',')
+              .map((item) => item.trim())
+              .filter((item) => parseCidr(item))
+        : [];
+
+    return fromEnv.length ? fromEnv : DEFAULT_ALLOWED_IPV4_CIDRS;
+}
+
+function isPrivateIPv4(ip) {
+    if (!getIPv4Octets(ip)) {
+        return false;
     }
 
-    if (a === 192 && b === 168) {
-        return true;
-    }
-
-    if (a === 100 && b >= 64 && b <= 127) {
-        return true;
-    }
-
-    if (a === 169 && b === 254) {
-        return true;
-    }
-
-    return a === 127;
+    const cidrs = getAllowedIpv4Cidrs();
+    return cidrs.some((cidr) => isIpInCidr(ip, cidr));
 }
 
 function isLanIp(ip) {
@@ -92,7 +137,9 @@ function getInterfacesSummary() {
 
 function getPreferredLanInterface() {
     const all = getInterfacesSummary();
-    const ipv4Candidates = all.filter((item) => item.family === 'IPv4' && item.internal === false && isIPv4(item.address));
+    const ipv4Candidates = all.filter(
+        (item) => item.family === 'IPv4' && item.internal === false && isIPv4(item.address)
+    );
 
     if (!ipv4Candidates.length) {
         return null;
@@ -109,6 +156,8 @@ function getPreferredLanInterface() {
 
             if (!item.address.startsWith('169.254.')) {
                 score += 25;
+            } else {
+                score -= 25;
             }
 
             if (profile === 'wired') {
@@ -128,9 +177,51 @@ function getPreferredLanInterface() {
                 score
             };
         })
-        .sort((left, right) => right.score - left.score);
+        .sort((left, right) => {
+            if (right.score !== left.score) {
+                return right.score - left.score;
+            }
+
+            const nameCmp = String(left.name || '').localeCompare(String(right.name || ''), 'en', {
+                sensitivity: 'base'
+            });
+
+            if (nameCmp !== 0) {
+                return nameCmp;
+            }
+
+            return String(left.address || '').localeCompare(String(right.address || ''));
+        });
 
     return scored[0] || null;
+}
+
+function getIpRangeFromBase(ipBase, ipStart, ipEnd) {
+    if (typeof ipBase !== 'string') {
+        return [];
+    }
+
+    const baseParts = ipBase.trim().split('.').map(Number);
+    if (baseParts.length !== 3 || baseParts.some((item) => Number.isNaN(item) || item < 0 || item > 255)) {
+        return [];
+    }
+
+    const safeStart = Math.max(0, Math.min(255, Number(ipStart)));
+    const safeEnd = Math.max(0, Math.min(255, Number(ipEnd)));
+
+    if (!Number.isFinite(safeStart) || !Number.isFinite(safeEnd)) {
+        return [];
+    }
+
+    const rangeStart = Math.min(safeStart, safeEnd);
+    const rangeEnd = Math.max(safeStart, safeEnd);
+    const ips = [];
+
+    for (let octet = rangeStart; octet <= rangeEnd; octet += 1) {
+        ips.push(`${ipBase}.${octet}`);
+    }
+
+    return ips;
 }
 
 function getRecommendedRange(preferredInterface) {
@@ -249,6 +340,7 @@ function getNetworkDiagnostics(host, port) {
     return {
         preferredInterface,
         range,
+        lanAllowedIpv4Cidrs: getAllowedIpv4Cidrs(),
         connectUrls: getConnectUrls(host, port, preferredInterface),
         interfaces,
         adapters: interfaces.map((item) => ({
@@ -264,5 +356,6 @@ function getNetworkDiagnostics(host, port) {
 
 module.exports = {
     isLanIp,
-    getNetworkDiagnostics
+    getNetworkDiagnostics,
+    getIpRangeFromBase
 };

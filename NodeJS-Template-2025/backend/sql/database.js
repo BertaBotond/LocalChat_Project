@@ -509,12 +509,31 @@ async function ensureSchemaExists(dbPool) {
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             ip VARCHAR(45) NOT NULL,
             status ENUM('online', 'offline', 'unknown') NOT NULL DEFAULT 'unknown',
+            network_status ENUM('reachable', 'unreachable', 'unknown') NOT NULL DEFAULT 'unknown',
+            chat_status ENUM('connected', 'disconnected', 'unknown') NOT NULL DEFAULT 'unknown',
             last_seen_at TIMESTAMP NULL,
             last_checked_at TIMESTAMP NULL,
+            last_reachable_at TIMESTAMP NULL,
+            last_chat_seen_at TIMESTAMP NULL,
             PRIMARY KEY (id),
             UNIQUE KEY uq_host_status_ip (ip)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+
+    await ensureColumnExists(
+        dbPool,
+        'host_status',
+        'network_status',
+        "ENUM('reachable', 'unreachable', 'unknown') NOT NULL DEFAULT 'unknown'"
+    );
+    await ensureColumnExists(
+        dbPool,
+        'host_status',
+        'chat_status',
+        "ENUM('connected', 'disconnected', 'unknown') NOT NULL DEFAULT 'unknown'"
+    );
+    await ensureColumnExists(dbPool, 'host_status', 'last_reachable_at', 'TIMESTAMP NULL');
+    await ensureColumnExists(dbPool, 'host_status', 'last_chat_seen_at', 'TIMESTAMP NULL');
 
     await dbPool.query(`
         CREATE TABLE IF NOT EXISTS connections_log (
@@ -877,8 +896,59 @@ async function ensureHosts(ips) {
         return;
     }
 
-    const values = ips.map((ip) => [ip, 'unknown']);
-    await getPool().query('INSERT IGNORE INTO host_status (ip, status) VALUES ?', [values]);
+    const values = ips.map((ip) => [ip, 'unknown', 'unknown', 'unknown']);
+    await getPool().query(
+        'INSERT IGNORE INTO host_status (ip, status, network_status, chat_status) VALUES ?',
+        [values]
+    );
+}
+
+function deriveNetworkStatus(item) {
+    if (item?.reachabilityStatus === 'reachable' || item?.reachabilityStatus === 'unreachable') {
+        return item.reachabilityStatus;
+    }
+
+    if (item?.network_status === 'reachable' || item?.network_status === 'unreachable') {
+        return item.network_status;
+    }
+
+    if (typeof item?.networkReachable === 'boolean') {
+        return item.networkReachable ? 'reachable' : 'unreachable';
+    }
+
+    return 'unknown';
+}
+
+function deriveChatStatus(item) {
+    if (item?.chatStatus === 'connected' || item?.chatStatus === 'disconnected') {
+        return item.chatStatus;
+    }
+
+    if (item?.chat_status === 'connected' || item?.chat_status === 'disconnected') {
+        return item.chat_status;
+    }
+
+    if (typeof item?.chatConnected === 'boolean') {
+        return item.chatConnected ? 'connected' : 'disconnected';
+    }
+
+    return 'unknown';
+}
+
+function deriveLegacyStatus(item, networkStatus, chatStatus) {
+    if (item?.status === 'online' || item?.status === 'offline' || item?.status === 'unknown') {
+        return item.status;
+    }
+
+    if (networkStatus === 'reachable' || chatStatus === 'connected') {
+        return 'online';
+    }
+
+    if (networkStatus === 'unreachable' && chatStatus === 'disconnected') {
+        return 'offline';
+    }
+
+    return 'unknown';
 }
 
 async function updateHostStatuses(statuses) {
@@ -887,14 +957,33 @@ async function updateHostStatuses(statuses) {
     }
 
     const query = `
-        INSERT INTO host_status (ip, status, last_seen_at, last_checked_at)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO host_status (
+            ip,
+            status,
+            network_status,
+            chat_status,
+            last_seen_at,
+            last_checked_at,
+            last_reachable_at,
+            last_chat_seen_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             status = VALUES(status),
+            network_status = VALUES(network_status),
+            chat_status = VALUES(chat_status),
             last_checked_at = VALUES(last_checked_at),
             last_seen_at = CASE
                 WHEN VALUES(status) = 'online' THEN VALUES(last_seen_at)
                 ELSE host_status.last_seen_at
+            END,
+            last_reachable_at = CASE
+                WHEN VALUES(network_status) = 'reachable' THEN VALUES(last_reachable_at)
+                ELSE host_status.last_reachable_at
+            END,
+            last_chat_seen_at = CASE
+                WHEN VALUES(chat_status) = 'connected' THEN VALUES(last_chat_seen_at)
+                ELSE host_status.last_chat_seen_at
             END
     `;
 
@@ -904,8 +993,23 @@ async function updateHostStatuses(statuses) {
         await connection.beginTransaction();
 
         for (const item of statuses) {
-            const lastSeenAt = item.status === 'online' ? item.lastSeenAt : null;
-            await connection.execute(query, [item.ip, item.status, lastSeenAt, item.lastCheckedAt]);
+            const networkStatus = deriveNetworkStatus(item);
+            const chatStatus = deriveChatStatus(item);
+            const legacyStatus = deriveLegacyStatus(item, networkStatus, chatStatus);
+            const lastSeenAt = legacyStatus === 'online' ? item.lastSeenAt || item.lastCheckedAt : null;
+            const lastReachableAt = networkStatus === 'reachable' ? item.lastCheckedAt : null;
+            const lastChatSeenAt = chatStatus === 'connected' ? item.lastCheckedAt : null;
+
+            await connection.execute(query, [
+                item.ip,
+                legacyStatus,
+                networkStatus,
+                chatStatus,
+                lastSeenAt,
+                item.lastCheckedAt,
+                lastReachableAt,
+                lastChatSeenAt
+            ]);
         }
 
         await connection.commit();
@@ -927,7 +1031,16 @@ async function updateHostStatuses(statuses) {
 
 async function getHostStatuses() {
     const [rows] = await getPool().query(
-        `SELECT id, ip, status, last_seen_at, last_checked_at
+        `SELECT
+            id,
+            ip,
+            status,
+            network_status,
+            chat_status,
+            last_seen_at,
+            last_checked_at,
+            last_reachable_at,
+            last_chat_seen_at
          FROM host_status
          ORDER BY INET_ATON(ip) ASC, ip ASC`
     );
