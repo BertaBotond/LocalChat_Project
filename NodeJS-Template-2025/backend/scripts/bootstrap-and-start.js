@@ -58,6 +58,20 @@ function getNpxCommand() {
     return process.platform === 'win32' ? 'npx.cmd' : 'npx';
 }
 
+function parseTunnelProviders() {
+    const raw = String(process.env.TUNNEL_PROVIDER || 'auto').trim().toLowerCase();
+
+    if (raw === 'ngrok') {
+        return ['ngrok'];
+    }
+
+    if (raw === 'localtunnel') {
+        return ['localtunnel'];
+    }
+
+    return ['ngrok', 'localtunnel'];
+}
+
 function runNpmInstall() {
     printSection('Fuggosegek telepitese');
 
@@ -133,48 +147,104 @@ async function startServer() {
     return startServer();
 }
 
+function startTunnelProcess(provider, activePort) {
+    const npxCommand = getNpxCommand();
+
+    if (provider === 'ngrok') {
+        const args = ['--yes', 'ngrok', 'http', String(activePort), '--log', 'stdout'];
+        const region = String(process.env.NGROK_REGION || '').trim();
+
+        if (region) {
+            args.push('--region', region);
+        }
+
+        const env = { ...process.env };
+        const token = String(process.env.NGROK_AUTHTOKEN || '').trim();
+        if (token) {
+            env.NGROK_AUTHTOKEN = token;
+        }
+
+        return spawn(npxCommand, args, {
+            cwd: backendRoot,
+            stdio: ['ignore', 'pipe', 'pipe'],
+            env
+        });
+    }
+
+    return spawn(npxCommand, ['--yes', 'localtunnel', '--port', String(activePort)], {
+        cwd: backendRoot,
+        stdio: ['ignore', 'pipe', 'pipe']
+    });
+}
+
 function startTunnelIfNeeded(strategy, activePort) {
     if (strategy.method !== 'tunnel') {
         return;
     }
 
-    printSection('Alagut mod (LocalTunnel)');
-    printInfo('Publikus tunnel inditasa automatikusan...');
+    printSection('Alagut mod (Auto)');
+    printInfo('Publikus tunnel inditasa automatikusan (ngrok/localtunnel)...');
 
-    const child = spawn(getNpxCommand(), ['--yes', 'localtunnel', '--port', String(activePort)], {
-        cwd: backendRoot,
-        stdio: ['ignore', 'pipe', 'pipe']
-    });
-
-    let published = false;
+    const providers = parseTunnelProviders();
     const urlRegex = /https:\/\/[^\s]+/i;
+    let activeChild = null;
+    let currentProviderIndex = -1;
+    let published = false;
 
-    const handleChunk = (chunk, logMethod = console.log) => {
-        const text = String(chunk || '').trim();
-        if (!text) {
+    const attachProcess = (child, provider) => {
+        const providerTag = provider.toUpperCase();
+
+        const handleChunk = (chunk, logMethod = console.log) => {
+            const text = String(chunk || '').trim();
+            if (!text) {
+                return;
+            }
+
+            const match = text.match(urlRegex);
+            if (match && !published) {
+                published = true;
+                printOk(`Tunnel URL (${provider}): ${match[0]}`);
+                printWarn('Ezt a publikus URL-t oszd meg a kliensekkel, ha LAN-on nem erheto el a szerver.');
+            }
+
+            logMethod(`[${providerTag}] ${text}`);
+        };
+
+        child.stdout.on('data', (chunk) => handleChunk(chunk, console.log));
+        child.stderr.on('data', (chunk) => handleChunk(chunk, console.warn));
+
+        child.on('close', (code) => {
+            const fallbackAllowed = !published && currentProviderIndex < providers.length - 1;
+
+            if (fallbackAllowed) {
+                printWarn(`${provider} leallt (exit code: ${code}), fallback a kovetkezo providerre...`);
+                startProvider(currentProviderIndex + 1);
+                return;
+            }
+
+            printWarn(`${provider} tunnel leallt (exit code: ${code}).`);
+        });
+    };
+
+    const startProvider = (index) => {
+        currentProviderIndex = index;
+        const provider = providers[index];
+
+        if (!provider) {
+            printError('Nem sikerult tunnel providert inditani (ngrok/localtunnel).');
             return;
         }
 
-        const match = text.match(urlRegex);
-        if (match && !published) {
-            published = true;
-            printOk(`Tunnel URL: ${match[0]}`);
-            printWarn('Ezt a publikus URL-t oszd meg a kliensekkel, ha LAN-on nem erheto el a szerver.');
-        }
-
-        logMethod(`[TUNNEL] ${text}`);
+        printInfo(`Tunnel provider inditas: ${provider}`);
+        activeChild = startTunnelProcess(provider, activePort);
+        attachProcess(activeChild, provider);
     };
 
-    child.stdout.on('data', (chunk) => handleChunk(chunk, console.log));
-    child.stderr.on('data', (chunk) => handleChunk(chunk, console.warn));
-
-    child.on('close', (code) => {
-        printWarn(`LocalTunnel leallt (exit code: ${code}).`);
-    });
+    startProvider(0);
 
     process.on('exit', () => {
         try {
-            child.kill();
+            activeChild?.kill();
         } catch (error) {
             // no-op
         }

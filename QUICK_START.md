@@ -45,7 +45,7 @@ Mit csinal automatikusan:
 - Pre-run diagnosztika alapjan automatikusan modot valaszt (`direct` / `port-switch` / `tunnel`).
 - Lefuttatja az adatbazis diagnosztikat.
 - Kiirja a kliens URL-eket (localhost + LAN).
-- Tunnel modban publikus `https://...` URL-t is kiir.
+- Tunnel modban publikus `https://...` URL-t is kiir (`ngrok`, fallback `localtunnel`).
 - Ha hiba van, pontos okot es javitasi tippet ad a terminalban.
 
 ### 1️⃣ Előfeltételek / Prerequisites
@@ -141,6 +141,9 @@ backend/
 SERVER_HOST=0.0.0.0          # Összes interfészen hallgatózz
 SERVER_PORT=3000              # Webszerver port
 STRATEGY_PORT_CANDIDATES=8080,80,443  # Automata portvaltas sorrend
+TUNNEL_PROVIDER=auto                 # auto | ngrok | localtunnel
+NGROK_AUTHTOKEN=                     # Opcionális, ngrok-hoz javasolt
+NGROK_REGION=eu                      # Opcionális (pl. eu)
 LAN_ONLY=true                 # Csak LAN hozzáférés
 
 DB_HOST=127.0.0.1             # MySQL szerver

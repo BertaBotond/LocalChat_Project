@@ -175,6 +175,8 @@ A legfontosabb valtozok:
 - `SECURE_LOG_FLUSH_MS`, `SECURE_LOG_BATCH_SIZE`, `SECURE_LOG_ROTATE_MAX_BYTES`, `SECURE_LOG_ROTATE_FILES`
 - `STARTUP_SMOKE_STRICT`, `AUTO_SNAPSHOT_INTERVAL_MS`
 - `STRATEGY_PORT_CANDIDATES` (pl. `8080,80,443`)
+- `TUNNEL_PROVIDER` (`auto` / `ngrok` / `localtunnel`)
+- `NGROK_AUTHTOKEN`, `NGROK_REGION`
 
 Discovery modok roviden:
 
@@ -212,7 +214,11 @@ npm run verify:full:nostrict
 `npm run up` inditaskor automata strategia dontes tortenik a fenti diagnosztikai jelek alapjan:
 
 1. Ha a `3000` valoszinuleg blokkolt/problemas, automatikus portvaltas (`8080,80,443` sorrend, `STRATEGY_PORT_CANDIDATES`-szel felulirhato).
-2. Ha localhost OK, de LAN probe nem, a rendszer tunnel modot valaszt (`localtunnel`) es kiir egy publikus URL-t.
+2. Ha localhost OK, de LAN probe nem, a rendszer tunnel modot valaszt es kiir egy publikus URL-t.
+   - `TUNNEL_PROVIDER=auto`: eloszor `ngrok`, ha nem indul akkor fallback `localtunnel`.
+   - `TUNNEL_PROVIDER=ngrok`: csak `ngrok`.
+   - `TUNNEL_PROVIDER=localtunnel`: csak `localtunnel`.
+   - `NGROK_AUTHTOKEN` megadasa javasolt a stabilabb ngrok futashoz.
 3. Ha AP isolation/VLAN gyanus, terminalban hotspot javaslatot is kapsz.
 4. Browser-check hintet is kapsz (`127.0.0.1` vs LAN IP) root-cause segitsegre.
 
