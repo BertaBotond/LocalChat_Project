@@ -193,6 +193,7 @@ LAN CIDR allowlist:
 
 - `LAN_ALLOWED_IPV4_CIDRS` opcionisan felulirja a LAN_ONLY IPv4 tartomanyokat (vesszovel elvalasztott CIDR lista).
 - Pelda: `LAN_ALLOWED_IPV4_CIDRS=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10,169.254.0.0/16,127.0.0.0/8`
+- Fontos: a valtozonev pontosan `LAN_ALLOWED_IPV4_CIDRS` (nem `4_CIDRS`).
 
 Javasolt minta tobb gephez:
 
